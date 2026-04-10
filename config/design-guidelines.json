@@ -1,0 +1,138 @@
+{
+  "identity": {
+    "name": "IntelliClass LMS",
+    "persona": "E1 - The Anti-AI Designer",
+    "tone": "Intellectual, Precision-Focused, Future-Forward",
+    "aesthetic": "Swiss-Tech Hybrid"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "Plus Jakarta Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "installation": {
+      "google_fonts_link": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    },
+    "rules": {
+      "headings": "tracking-tight font-bold text-slate-900 dark:text-white",
+      "subheadings": "tracking-wide uppercase text-xs font-semibold text-slate-500 dark:text-slate-400",
+      "body": "leading-relaxed text-slate-600 dark:text-slate-300"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#4f46e5",
+        "foreground": "#ffffff",
+        "description": "Electric Indigo - Use for primary actions, active states, and brand moments."
+      },
+      "secondary": {
+        "DEFAULT": "#10b981",
+        "foreground": "#ffffff",
+        "description": "Emerald - Use for success, growth metrics, and 'safe' actions."
+      },
+      "destructive": {
+        "DEFAULT": "#f43f5e",
+        "foreground": "#ffffff",
+        "description": "Rose - Use for errors, alerts, and 'danger' zones."
+      },
+      "background": {
+        "light": "#f8fafc",
+        "dark": "#020617",
+        "description": "Slate 50 (Light) / Slate 950 (Dark) - Never pure white or black."
+      },
+      "surface": {
+        "light": "#ffffff",
+        "dark": "#0f172a",
+        "description": "White (Light) / Slate 900 (Dark) - For cards and panels."
+      }
+    },
+    "forbidden": [
+      "#1B93A4",
+      "#7351B7",
+      "gradients for text",
+      "pure black #000000"
+    ]
+  },
+  "spacing_layout": {
+    "scale": "Tailwind Scale (p-4, p-6, p-8, p-12, p-16)",
+    "grid_system": {
+      "dashboard": "Bento Grid: grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "landing": "Tetris Grid: grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8",
+      "rules": [
+        "Containers with borders MUST have internal padding (p-6 or p-8).",
+        "Never fill 100% of the grid perfectly in marketing pages.",
+        "Use col-span-2 or col-span-full for hero elements."
+      ]
+    },
+    "container": {
+      "max_width": "max-w-7xl",
+      "padding": "px-4 sm:px-6 lg:px-8"
+    }
+  },
+  "components": {
+    "buttons": {
+      "style": "Sharp corners or full pill (no default rounded-md).",
+      "hover": "transform -translate-y-0.5 transition-transform duration-200"
+    },
+    "cards": {
+      "style": "Flat background, 1px subtle border (border-slate-200 dark:border-slate-800), no shadow by default.",
+      "hover": "shadow-lg border-indigo-500/30 transition-all duration-300"
+    },
+    "inputs": {
+      "style": "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-indigo-500"
+    },
+    "charts": {
+      "library": "Recharts (via Shadcn)",
+      "style": "Minimalist, thin lines, no grid lines unless necessary. Use palette colors."
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "usage": "Sticky headers, modal overlays, and 'Lecture Recording' active state.",
+      "classes": "bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-white/20"
+    },
+    "grid_borders": {
+      "usage": "Admin Dashboard and Analytics sections.",
+      "classes": "border-r border-b border-slate-200/50 dark:border-slate-800/50"
+    },
+    "noise_texture": {
+      "usage": "Landing page hero background.",
+      "css": "background-image: url('data:image/svg+xml,...'); opacity: 0.05;"
+    }
+  },
+  "images": {
+    "landing_hero": {
+      "url": "https://images.unsplash.com/photo-1589872880544-76e896b0592c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHx1bml2ZXJzaXR5JTIwc3R1ZGVudHMlMjBzdHVkeWluZyUyMGxhcHRvcCUyMG1vZGVybiUyMGxpYnJhcnl8ZW58MHx8fHwxNzY4ODEzMzM1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Students studying in a modern library",
+      "usage": "Hero section background or main visual"
+    },
+    "feature_lecture": {
+      "url": "https://images.unsplash.com/photo-1758685734643-db77920292bc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBjbGFzc3Jvb20lMjBsZWN0dXJlJTIwcHJvZmVzc29yfGVufDB8fHx8MTc2ODgxMzMzOXww&ixlib=rb-4.1.0&q=85",
+      "alt": "Professor writing on chalkboard",
+      "usage": "AI Lecture Recording feature section"
+    },
+    "feature_coding": {
+      "url": "https://images.unsplash.com/photo-1753998943619-b9cd910887e5?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwyfHxjb2RpbmclMjBvbiUyMGxhcHRvcCUyMHNjcmVlbiUyMGNsb3NlJTIwdXB8ZW58MHx8fHwxNzY4ODEzMzQxfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Code on laptop screen",
+      "usage": "Coding Platform Integration feature section"
+    },
+    "certificate_bg": {
+      "url": "https://images.unsplash.com/photo-1589872880544-76e896b0592c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHx1bml2ZXJzaXR5JTIwc3R1ZGVudHMlMjBzdHVkeWluZyUyMGxhcHRvcCUyMG1vZGVybiUyMGxpYnJhcnl8ZW58MHx8fHwxNzY4ODEzMzM1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract background for certificates",
+      "usage": "Subtle background for generated certificates"
+    }
+  },
+  "universal_guidelines": [
+    "Do not use 'Inter' for headings. Use 'Outfit'.",
+    "Do not use gradients for text.",
+    "Do not center align the app container.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Every interaction needs micro-animations.",
+    "All interactive elements MUST include data-testid attribute.",
+    "Use 'sonner' for toasts.",
+    "Use 'lucide-react' for icons."
+  ],
+  "instructions_to_main_agent": "Follow the 'Bento Grid' layout for dashboards. Use the specified color palette strictly. Ensure dark mode is fully supported and tested. Use the provided image URLs for the respective sections. Implement the 'Glassmorphism' effect for the lecture recording overlay."
+}

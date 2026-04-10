@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "npm --prefix frontend start",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test"
+  },
+  "dependencies": {
+    "install": "^0.13.0"
+  }
+}
