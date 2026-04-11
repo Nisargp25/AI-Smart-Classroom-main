@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { setAuthToken } from '../contexts/AuthContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -8,7 +9,22 @@ import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { CampusAiLogo } from '../components/CampusAiLogo';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = (() => {
+  const configured = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
+  const host = window.location.hostname;
+  const isRemoteHost = host !== 'localhost' && host !== '127.0.0.1';
+  const isDevTunnelHost = /-4000\..*\.devtunnels\.ms$/i.test(host);
+
+  if (isDevTunnelHost) {
+    return `${window.location.origin}/api`;
+  }
+
+  if (isRemoteHost && (!configured || configured.includes('localhost') || configured.includes('127.0.0.1'))) {
+    return `${window.location.protocol}//${window.location.hostname}:8000/api`;
+  }
+
+  return `${configured || window.location.origin}/api`;
+})();
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,6 +49,7 @@ export default function Login() {
         { withCredentials: true }
       );
 
+      setAuthToken(response.data.token);
       console.log('[LOGIN FORM] Login successful:', response.data);
       setUser(response.data.user);
       toast.success('Login successful!');
@@ -59,6 +76,7 @@ export default function Login() {
         { withCredentials: true }
       );
       
+      setAuthToken(response.data.token);
       console.log('[LOGIN FORM] Demo login successful:', response.data);
       setUser(response.data.user);
       toast.success('Demo login successful!');

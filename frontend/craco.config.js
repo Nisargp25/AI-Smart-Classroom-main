@@ -57,6 +57,24 @@ const webpackConfig = {
 };
 
 webpackConfig.devServer = (devServerConfig) => {
+  const backendProxyTarget = (
+    process.env.BACKEND_PROXY_TARGET
+    || process.env.REACT_APP_BACKEND_URL
+    || "http://127.0.0.1:8000"
+  ).replace(/\/$/, "");
+
+  // Proxy API calls through the frontend dev server.
+  // This allows public tunnel access with only port 4000 forwarded.
+  devServerConfig.proxy = [
+    {
+      context: ["/api"],
+      target: backendProxyTarget,
+      changeOrigin: true,
+      secure: false,
+      ws: false,
+    },
+  ];
+
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;

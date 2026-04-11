@@ -1190,6 +1190,11 @@ cors_origins = [o.strip() for o in os.environ.get(
     "http://127.0.0.1:4000,http://localhost:4000,http://127.0.0.1:3000,http://localhost:3000"
 ).split(",") if o.strip()]
 
+cors_origin_regex = os.environ.get(
+    "CORS_ORIGIN_REGEX",
+    r"https?://([a-zA-Z0-9-]+\.)*(devtunnels\.ms|ngrok-free\.app|ngrok\.io|loca\.lt|trycloudflare\.com)(:\d+)?$"
+)
+
 # Browsers block credentialed CORS when allow_origins is wildcard.
 if "*" in cors_origins:
     cors_origins = [
@@ -1203,6 +1208,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )
