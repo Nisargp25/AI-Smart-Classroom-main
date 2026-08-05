@@ -56,21 +56,8 @@ export default function LectureView() {
     fetchLecture();
   }, [fetchLecture]);
 
-// Polling effect: periodically refresh the lecture while it is still processing.
-  //
-  // NOTE: We intentionally reference only `lecture?.status` (a primitive) inside
-  // the effect body instead of the whole `lecture` object.
-  //
-  // Why:
-  //  - `lecture` is a state object that gets a NEW reference on every fetch,
-  //    so adding the whole object to the dependency array would tear down and
-  //    re-create the interval after every silent fetch (every 5s), needlessly
-  //    resetting the timer and fighting a possible re-render loop.
-  //  - `lecture?.status` is a string primitive that only changes identity when
-  //    the status actually changes (e.g. 'processing' -> 'completed'). This is
-  //    the only value this effect actually needs, so placing it in the deps
-  //    array satisfies `react-hooks/exhaustive-deps` WITHOUT disabling any
-  //    ESLint rule and WITHOUT causing unnecessary re-runs.
+const lectureStatus = lecture?.status;
+
   useEffect(() => {
     if (!lecture?.status || lecture?.status === 'completed') {
       return;
