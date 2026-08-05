@@ -28,6 +28,7 @@ import {
   Loader2,
   Sparkles,
   Send,
+  X,
 } from 'lucide-react';
 import {
   BarChart,
@@ -55,6 +56,8 @@ export default function TeacherDashboard() {
   const [newLecture, setNewLecture] = useState({ title: '', subject: '', topic: '', batch: 'All' });
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [numQuestions, setNumQuestions] = useState(10);
+  const [numOptions, setNumOptions] = useState(4);
 
   useEffect(() => {
     fetchTeacherData();
@@ -143,7 +146,8 @@ export default function TeacherDashboard() {
         {
           lecture_id: lectureId,
           topic: lecture?.topic || 'General',
-          num_questions: 5,
+          num_questions: numQuestions,
+          num_options: numOptions,
         },
         { withCredentials: true }
       );
@@ -155,6 +159,24 @@ export default function TeacherDashboard() {
     } finally {
       setGeneratingQuiz(false);
     }
+  };
+
+  const updateGeneratedQuestion = (index, field, value) => {
+    setGeneratedQuestions(prev => prev.map((q, i) => (i === index ? { ...q, [field]: value } : q)));
+  };
+
+  const updateOption = (qIndex, optIndex, value) => {
+    setGeneratedQuestions(prev => prev.map((q, i) => {
+      if (i !== qIndex) return q;
+      const options = [...q.options];
+      options[optIndex] = value;
+      return { ...q, options };
+    }));
+  };
+
+  const deleteGeneratedQuestion = (index) => {
+    setGeneratedQuestions(prev => prev.filter((_, i) => i !== index));
+    toast.success('Question removed');
   };
 
   const saveQuiz = async () => {
@@ -396,8 +418,8 @@ export default function TeacherDashboard() {
                                 size="sm"
                                 onClick={() => {
                                   setSelectedLecture(lecture);
+                                  setGeneratedQuestions([]);
                                   setShowQuizDialog(true);
-                                  generateQuizFromLecture(lecture.lecture_id);
                                 }}
                               >
                                 <Sparkles className="w-4 h-4 mr-1" />
@@ -485,40 +507,164 @@ export default function TeacherDashboard() {
 
         {/* Quiz Generation Dialog */}
         <Dialog open={showQuizDialog} onOpenChange={setShowQuizDialog}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>AI Generated Quiz</DialogTitle>
             </DialogHeader>
+
+            {/* Config controls */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="num-questions">Number of Questions</Label>
+                <Select value={numQuestions.toString()} onValueChange={val => setNumQuestions(parseInt(val))}>
+                  <SelectTrigger id="num-questions" data-testid="num-questions-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 15, 20, 30, 40, 50].map(n => (
+                      <SelectItem key={n} value={n.toString()}>{n} questions</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="num-options">Options per Question</Label>
+                <Select value={numOptions.toString()} onValueChange={val => setNumOptions(parseInt(val))}>
+                  <SelectTrigger id="num-options" data-testid="num-options-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[2, 3, 4, 5].map(n => (
+                      <SelectItem key={n} value={n.toString()}>{n} options</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {generatingQuiz ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground">Generating quiz questions...</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {generatedQuestions.map((q, i) => (
-                  <div key={i} className="p-4 border rounded-lg">
-                    <p className="font-medium mb-2">Q{i + 1}. {q.question}</p>
-                    <div className="space-y-1">
-                      {q.options.map((opt, j) => (
-                        <p
-                          key={j}
-                          className={`text-sm p-2 rounded ${j === q.correct_answer ? 'bg-green-500/10 text-green-700 dark:text-green-400' : ''}`}
-                        >
-                          {String.fromCharCode(65 + j)}. {opt}
-                        </p>
-                      ))}
-                    </div>
-                    <Badge variant="outline" className="mt-2">{q.difficulty}</Badge>
+              <>
+                {generatedQuestions.length === 0 && (
+                  <div className="mb-4">
+                    <Button
+                      onClick={() => {
+                        if (selectedLecture) generateQuizFromLecture(selectedLecture.lecture_id);
+                      }}
+                      className="w-full"
+                      disabled={!selectedLecture}
+                      data-testid="generate-questions-btn"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Questions with AI
+                    </Button>
                   </div>
-                ))}
-                {generatedQuestions.length > 0 && (
-                  <Button onClick={saveQuiz} className="w-full" data-testid="save-quiz-btn">
-                    <Send className="w-4 h-4 mr-2" />
-                    Save Quiz
-                  </Button>
                 )}
-              </div>
+                <div className="space-y-4">
+                  {generatedQuestions.map((q, i) => (
+                    <div key={i} className="p-4 border rounded-lg space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <Input
+                          value={q.question}
+                          onChange={e => updateGeneratedQuestion(i, 'question', e.target.value)}
+                          className="font-medium"
+                          placeholder={`Q${i + 1}. Question text`}
+                          data-testid={`edit-question-${i}`}
+                        />
+                        <Button variant="ghost" size="sm" onClick={() => deleteGeneratedQuestion(i)} className="text-red-500 flex-shrink-0">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
+                        {q.options.map((opt, j) => (
+                          <div key={j} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateGeneratedQuestion(i, 'correct_answer', j)}
+                              className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                j === q.correct_answer
+                                  ? 'bg-green-500 text-white border-green-500'
+                                  : 'border-muted-foreground/40 text-muted-foreground'
+                              }`}
+                              title={j === q.correct_answer ? 'Correct answer' : 'Mark as correct'}
+                              data-testid={`mark-correct-${i}-${j}`}
+                            >
+                              {String.fromCharCode(65 + j)}
+                            </button>
+                            <Input
+                              value={opt}
+                              onChange={e => updateOption(i, j, e.target.value)}
+                              className="text-sm"
+                              placeholder={`Option ${String.fromCharCode(65 + j)}`}
+                              data-testid={`edit-option-${i}-${j}`}
+                            />
+                            {j === q.correct_answer && (
+                              <Badge className="flex-shrink-0 bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/30">
+                                Correct
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-32">
+                          <Select
+                            value={q.difficulty || 'medium'}
+                            onValueChange={val => updateGeneratedQuestion(i, 'difficulty', val)}
+                          >
+                            <SelectTrigger className="h-8 text-sm" data-testid={`edit-difficulty-${i}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="easy">Easy</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="hard">Hard</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Input
+                          value={q.explanation || ''}
+                          onChange={e => updateGeneratedQuestion(i, 'explanation', e.target.value)}
+                          className="text-sm"
+                          placeholder="Explanation (optional)"
+                          data-testid={`edit-explanation-${i}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {generatedQuestions.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setGeneratedQuestions(prev => [
+                          ...prev,
+                          {
+                            question: '',
+                            options: Array.from({ length: numOptions }, () => ''),
+                            correct_answer: 0,
+                            difficulty: 'medium',
+                            explanation: '',
+                          },
+                        ]);
+                      }}
+                      data-testid="add-question-btn"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Question
+                    </Button>
+                    <Button onClick={saveQuiz} className="w-full" data-testid="save-quiz-btn">
+                      <Send className="w-4 h-4 mr-2" />
+                      Save Quiz
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </DialogContent>
         </Dialog>

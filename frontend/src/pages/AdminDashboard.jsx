@@ -36,7 +36,7 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import API, { debugLog, debugError } from '../lib/api';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       setStats(statsRes.data);
       setUsers(usersRes.data);
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      debugError('ADMIN', 'Error fetching admin data:', error);
       toast.error('Failed to load admin data');
     } finally {
       setLoading(false);
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       toast.success('Demo data seeded successfully!');
       fetchAdminData();
     } catch (error) {
-      console.error('Error seeding data:', error);
+      debugError('ADMIN', 'Error seeding data:', error);
       toast.error('Failed to seed demo data');
     } finally {
       setSeeding(false);
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
       toast.success('User role updated');
       fetchAdminData();
     } catch (error) {
-      console.error('Error updating role:', error);
+      debugError('ADMIN', 'Error updating role:', error);
       toast.error('Failed to update role');
     }
   };
@@ -97,6 +97,7 @@ export default function AdminDashboard() {
     { name: 'Admins', value: stats.admins, color: '#f59e0b' },
   ] : [];
 
+  // Placeholder chart data — replace with real API fetch when backend endpoint is available
   const activityData = [
     { name: 'Mon', lectures: 4, quizzes: 8 },
     { name: 'Tue', lectures: 6, quizzes: 12 },

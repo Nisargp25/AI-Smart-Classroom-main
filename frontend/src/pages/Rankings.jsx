@@ -94,7 +94,7 @@ export default function Rankings() {
                 </div>
                 <div className="flex gap-8">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-primary">{Math.round(myRanking.academic_score)}%</p>
+                    <p className="text-2xl font-bold text-accentText">{Math.round(myRanking.academic_score)}%</p>
                     <p className="text-sm text-muted-foreground">Academic</p>
                   </div>
                   <div className="text-center">

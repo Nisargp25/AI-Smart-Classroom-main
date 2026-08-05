@@ -1,184 +1,179 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { setAuthToken } from '../contexts/AuthContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
-import { CampusAiLogo } from '../components/CampusAiLogo';
-
-const API = (() => {
-  const configured = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
-  const host = window.location.hostname;
-  const isRemoteHost = host !== 'localhost' && host !== '127.0.0.1';
-  const isDevTunnelHost = /-4000\..*\.devtunnels\.ms$/i.test(host);
-
-  if (isDevTunnelHost) {
-    return `${window.location.origin}/api`;
-  }
-
-  if (isRemoteHost && (!configured || configured.includes('localhost') || configured.includes('127.0.0.1'))) {
-    return `${window.location.protocol}//${window.location.hostname}:8000/api`;
-  }
-
-  return `${configured || window.location.origin}/api`;
-})();
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { AuthLayout } from '../components/AuthLayout';
+import { ArrowRight, GraduationCap, BookOpen, Loader2, Mail, Lock, User } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { user, register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('student');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e) => {
+  // If already signed in, redirect
+  if (user) {
+    navigate('/dashboard', { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      const response = await axios.post(
-        `${API}/auth/register`,
-        { name, email, password },
-        { withCredentials: true }
-      );
-
-      setAuthToken(response.data.token);
-      setUser(response.data.user);
-      toast.success('Registration successful!');
+      await register(name, email, password, selectedRole);
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || 'Registration failed. Please try again.';
-      setError(errorMsg);
-      toast.error(errorMsg);
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CampusAiLogo className="h-8 w-8" />
-            </div>
+    <AuthLayout
+      subtitle="Create your account and start learning."
+      altAction={{
+        text: 'Already have an account?',
+        linkText: 'Sign in',
+        onClick: () => navigate('/login'),
+      }}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            {error}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">CampusAi</h1>
-          <p className="text-muted-foreground mt-2">Create your account</p>
+        )}
+
+        {/* Progress indicator */}
+        <div className="flex gap-1.5 mb-2">
+          <div className="h-1 flex-1 rounded-full bg-primary" />
+          <div className="h-1 flex-1 rounded-full bg-muted" />
+          <div className="h-1 flex-1 rounded-full bg-muted" />
         </div>
 
-        <Card className="shadow-lg border-0">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Sign Up</CardTitle>
-            <CardDescription>
-              Create an account to start using CampusAi
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Jane Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={loading}
-                    className="w-full pl-10 pr-4 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                    data-testid="name-input"
-                  />
-                </div>
+        {/* Role Selection */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground/80">
+            I want to join as
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedRole('student')}
+              disabled={loading}
+              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                selectedRole === 'student'
+                  ? 'border-primary bg-primary/5 text-accentText'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground'
+              }`}
+            >
+              <GraduationCap className="w-5 h-5" />
+              <div className="text-left">
+                <p className="text-sm font-medium">Student</p>
+                <p className="text-xs opacity-70">Learn & take quizzes</p>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    className="w-full pl-10 pr-4 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                    data-testid="email-input"
-                  />
-                </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRole('teacher')}
+              disabled={loading}
+              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                selectedRole === 'teacher'
+                  ? 'border-primary bg-primary/5 text-accentText'
+                  : 'border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground'
+              }`}
+            >
+              <BookOpen className="w-5 h-5" />
+              <div className="text-left">
+                <p className="text-sm font-medium">Teacher</p>
+                <p className="text-xs opacity-70">Create lectures & quizzes</p>
               </div>
+            </button>
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="w-full pl-10 pr-10 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                    data-testid="password-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                    disabled={loading}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
+        <div className="space-y-2">
+          <Label htmlFor="name">Full Name</Label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pl-10 h-11 rounded-xl"
+              required
+              disabled={loading}
+            />
+          </div>
+        </div>
 
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                  {error}
-                </div>
-              )}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-10 h-11 rounded-xl"
+              required
+              disabled={loading}
+            />
+          </div>
+        </div>
 
-              <Button
-                type="submit"
-                disabled={loading || !name || !email || password.length < 6}
-                className="w-full"
-                size="lg"
-                data-testid="register-button"
-              >
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Create Account
-              </Button>
-            </form>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="password"
+              type="password"
+              placeholder="Min. 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pl-10 h-11 rounded-xl"
+              minLength={6}
+              required
+              disabled={loading}
+            />
+          </div>
+        </div>
 
-            <p className="text-xs text-muted-foreground text-center mt-6">
-              Already have an account?{' '}
-              <button
-                type="button"
-                className="text-primary hover:underline font-medium"
-                onClick={() => navigate('/login')}
-              >
-                Sign in
-              </button>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="h-12 w-full rounded-xl bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10 transition-all"
+          size="lg"
+          data-testid="register-button"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Creating account...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              {selectedRole === 'teacher' ? 'Create Teacher Account' : 'Create Student Account'}
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          )}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
+

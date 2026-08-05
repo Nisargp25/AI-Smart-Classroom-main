@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import {
   BookOpen,
@@ -19,8 +18,6 @@ import {
   Target,
   ChevronRight,
   Play,
-  Clock,
-  CheckCircle2,
   Bell,
 } from 'lucide-react';
 import {
@@ -31,13 +28,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import { toast } from 'sonner';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import API, { debugLog, debugError } from '../lib/api';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -54,45 +47,45 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      console.log('[DASHBOARD] Fetching dashboard data from:', API);
+      debugLog('DASHBOARD', 'Fetching dashboard data from:', API);
       const [perfRes, rankRes, lectRes, annRes, codeRes] = await Promise.all([
         axios.get(`${API}/performance`, { withCredentials: true }).catch(e => {
-          console.error('[DASHBOARD] Performance fetch failed:', e.message);
+          debugError('DASHBOARD', 'Performance fetch failed:', e.message);
           throw e;
         }),
         axios.get(`${API}/rankings/me`, { withCredentials: true }).catch(e => {
-          console.error('[DASHBOARD] Rankings fetch failed:', e.message);
+          debugError('DASHBOARD', 'Rankings fetch failed:', e.message);
           throw e;
         }),
         axios.get(`${API}/lectures?limit=5`, { withCredentials: true }).catch(e => {
-          console.error('[DASHBOARD] Lectures fetch failed:', e.message);
+          debugError('DASHBOARD', 'Lectures fetch failed:', e.message);
           throw e;
         }),
         axios.get(`${API}/announcements`, { withCredentials: true }).catch(e => {
-          console.error('[DASHBOARD] Announcements fetch failed:', e.message);
+          debugError('DASHBOARD', 'Announcements fetch failed:', e.message);
           throw e;
         }),
         axios.get(`${API}/coding-profile`, { withCredentials: true }).catch(e => {
-          console.error('[DASHBOARD] Coding profile fetch failed:', e.message);
+          debugError('DASHBOARD', 'Coding profile fetch failed:', e.message);
           throw e;
         }),
       ]);
       
-      console.log('[DASHBOARD] All data fetched successfully');
+      debugLog('DASHBOARD', 'All data fetched successfully');
       setPerformance(perfRes.data);
       setRanking(rankRes.data);
       setLectures(lectRes.data);
       setAnnouncements(annRes.data);
       setCodingProfile(codeRes.data);
     } catch (error) {
-      console.error('[DASHBOARD] Error fetching dashboard data:', error.message, error.response?.status, error.response?.data);
+      debugError('DASHBOARD', 'Error fetching dashboard data:', error.message, error.response?.status, error.response?.data);
       toast.error('Failed to load dashboard data: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Chart data
+  // Placeholder chart data — last week merges with real average_percentage from backend
   const progressData = [
     { name: 'Week 1', score: 65 },
     { name: 'Week 2', score: 72 },
@@ -106,14 +99,14 @@ export default function Dashboard() {
     value: Math.round(value),
   }));
 
-  const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
 
   const statsCards = [
     {
       title: 'Average Score',
       value: `${Math.round(performance?.average_percentage || 0)}%`,
       icon: Target,
-      color: 'text-primary',
+      color: 'text-accentText',
       bgColor: 'bg-primary/10',
     },
     {
@@ -298,7 +291,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-4">
-                  <p className="text-4xl font-bold text-primary">
+                  <p className="text-4xl font-bold text-accentText">
                     {codingProfile?.total_problems || 0}
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">Problems Solved</p>

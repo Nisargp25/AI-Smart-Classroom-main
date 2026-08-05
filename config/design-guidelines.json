@@ -1,9 +1,9 @@
 {
   "identity": {
     "name": "IntelliClass LMS",
-    "persona": "E1 - The Anti-AI Designer",
-    "tone": "Intellectual, Precision-Focused, Future-Forward",
-    "aesthetic": "Swiss-Tech Hybrid"
+    "persona": "Warm & Approachable AI Educator",
+    "tone": "Friendly, Trustworthy, Modern-Classroom",
+    "aesthetic": "Warm Modern Classroom"
   },
   "typography": {
     "font_family": {
@@ -14,46 +14,35 @@
     "installation": {
       "google_fonts_link": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
     },
+    "scale": {
+      "h1": "48px Bold (Hero: 56-64px Bold)",
+      "h2": "36px Semi-Bold",
+      "h3": "28px Medium",
+      "body": "16px Regular",
+      "small": "14px Regular"
+    },
     "rules": {
-      "headings": "tracking-tight font-bold text-slate-900 dark:text-white",
-      "subheadings": "tracking-wide uppercase text-xs font-semibold text-slate-500 dark:text-slate-400",
-      "body": "leading-relaxed text-slate-600 dark:text-slate-300"
+      "headings": "tracking-tight font-bold text-foreground",
+      "subheadings": "tracking-wide uppercase text-xs font-semibold text-muted-foreground",
+      "body": "leading-relaxed text-foreground/90"
     }
   },
   "colors": {
     "palette": {
-      "primary": {
-        "DEFAULT": "#4f46e5",
-        "foreground": "#ffffff",
-        "description": "Electric Indigo - Use for primary actions, active states, and brand moments."
-      },
-      "secondary": {
-        "DEFAULT": "#10b981",
-        "foreground": "#ffffff",
-        "description": "Emerald - Use for success, growth metrics, and 'safe' actions."
-      },
-      "destructive": {
-        "DEFAULT": "#f43f5e",
-        "foreground": "#ffffff",
-        "description": "Rose - Use for errors, alerts, and 'danger' zones."
-      },
-      "background": {
-        "light": "#f8fafc",
-        "dark": "#020617",
-        "description": "Slate 50 (Light) / Slate 950 (Dark) - Never pure white or black."
-      },
-      "surface": {
-        "light": "#ffffff",
-        "dark": "#0f172a",
-        "description": "White (Light) / Slate 900 (Dark) - For cards and panels."
-      }
+      "background": { "light": "#F7E6CA", "dark": "#171717", "description": "Warm cream (light) / Charcoal (dark)" },
+      "surface": { "light": "#FFFFFF", "dark": "#242424", "description": "Cards & panels" },
+      "card": { "light": "#FFFFFF", "dark": "#2F2F2F", "description": "Nested card surfaces" },
+      "border": { "light": "#E8D59E", "dark": "#3A3A3A", "description": "Dividers & input borders" },
+      "primary": { "DEFAULT": "#4F46E5", "foreground": "#FFFFFF", "dark": "#6366F1", "description": "Electric Indigo — primary actions, active states, brand moments" },
+      "secondary": { "DEFAULT": "#0EA5E9", "foreground": "#FFFFFF", "dark": "#38BDF8", "description": "Sky Blue — secondary accents, charts, links" },
+      "success": { "DEFAULT": "#10B981", "foreground": "#FFFFFF", "description": "Emerald — success & growth" },
+      "error": { "DEFAULT": "#EF4444", "foreground": "#FFFFFF", "description": "Red — errors & alerts" },
+      "neutral": { "light": "#AD9C8E", "dark": "#9C948A", "description": "Borders, dividers, icons, placeholders ONLY (not body text)" },
+      "accent_text": { "light": "#C2410C", "dark": "#FB923C", "description": "Terracotta — accent text, hero title highlights, stat numbers, score values, links (NOT buttons)" },
+      "text": { "light": "#4A4036", "dark": "#FFFFFF", "description": "Body text — WCAG AA compliant" },
+      "text_muted": { "light": "#8A7B66", "dark": "#9C948A", "description": "Secondary text" }
     },
-    "forbidden": [
-      "#1B93A4",
-      "#7351B7",
-      "gradients for text",
-      "pure black #000000"
-    ]
+    "forbidden": ["#1B93A4", "#7351B7", "gradients for text", "pure black #000000", "lavender/purple orbs (#a882de family)"]
   },
   "spacing_layout": {
     "scale": "Tailwind Scale (p-4, p-6, p-8, p-12, p-16)",
@@ -66,22 +55,23 @@
         "Use col-span-2 or col-span-full for hero elements."
       ]
     },
-    "container": {
-      "max_width": "max-w-7xl",
-      "padding": "px-4 sm:px-6 lg:px-8"
-    }
+    "container": { "max_width": "max-w-7xl", "padding": "px-4 sm:px-6 lg:px-8" }
   },
   "components": {
     "buttons": {
-      "style": "Sharp corners or full pill (no default rounded-md).",
+      "style": "Pill (rounded-full) for CTAs, rounded-lg for inline actions",
+      "primary": "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+      "secondary": "transparent bg with 1px border-border, hover:bg-accent",
       "hover": "transform -translate-y-0.5 transition-transform duration-200"
     },
     "cards": {
-      "style": "Flat background, 1px subtle border (border-slate-200 dark:border-slate-800), no shadow by default.",
-      "hover": "shadow-lg border-indigo-500/30 transition-all duration-300"
+      "style": "White surface on cream, 1px border (border-border), soft shadow",
+      "shadow": "shadow-[0_4px_24px_rgba(79,70,229,0.06)]",
+      "hover": "shadow-lg border-primary/30 -translate-y-0.5 transition-all duration-300",
+      "radius": "16px (rounded-2xl)"
     },
     "inputs": {
-      "style": "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-indigo-500"
+      "style": "bg-white dark:bg-card border-border focus:ring-2 focus:ring-primary rounded-xl h-11"
     },
     "charts": {
       "library": "Recharts (via Shadcn)",
@@ -90,12 +80,13 @@
   },
   "visual_enhancers": {
     "glassmorphism": {
-      "usage": "Sticky headers, modal overlays, and 'Lecture Recording' active state.",
-      "classes": "bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-white/20"
+      "usage": "Sticky headers, modal overlays, 'Lecture Recording' active state.",
+      "classes": "bg-background/70 dark:bg-background/70 backdrop-blur-[20px] border-b border-border/30",
+      "blur": "20px"
     },
     "grid_borders": {
       "usage": "Admin Dashboard and Analytics sections.",
-      "classes": "border-r border-b border-slate-200/50 dark:border-slate-800/50"
+      "classes": "border-r border-b border-border/50"
     },
     "noise_texture": {
       "usage": "Landing page hero background.",
@@ -132,7 +123,13 @@
     "Every interaction needs micro-animations.",
     "All interactive elements MUST include data-testid attribute.",
     "Use 'sonner' for toasts.",
-    "Use 'lucide-react' for icons."
+    "Use 'lucide-react' for icons.",
+    "Do NOT use lavender/purple background orbs (#a882de family) — use indigo/sky accents.",
+    "Body text must use the text token (#4A4036 light / #FFFFFF dark), never neutral #AD9C8E.",
+    "Accent/highlight text (hero titles, stat numbers, scores, links) uses terracotta #C2410C, NOT indigo.",
+    "Indigo #4F46E5 is reserved for buttons, active nav states, and focus rings ONLY.",
+    "Cards are white (#FFFFFF) on cream (#F7E6CA) in light mode."
   ],
-  "instructions_to_main_agent": "Follow the 'Bento Grid' layout for dashboards. Use the specified color palette strictly. Ensure dark mode is fully supported and tested. Use the provided image URLs for the respective sections. Implement the 'Glassmorphism' effect for the lecture recording overlay."
+  "instructions_to_main_agent": "Follow the 'Bento Grid' layout for dashboards. Use the warm palette strictly. Ensure dark mode is fully supported and tested. Use the provided image URLs for the respective sections. Implement the 'Glassmorphism' effect (20px blur) for headers and the lecture recording overlay."
 }
+

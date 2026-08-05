@@ -34,6 +34,7 @@ export default function LectureView() {
   const [regenerating, setRegenerating] = useState(false);
   const [processingNow, setProcessingNow] = useState(false);
   const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [showRawSummary, setShowRawSummary] = useState(false);
 
   useEffect(() => {
     fetchLecture();
@@ -178,6 +179,15 @@ export default function LectureView() {
                   {regenerating ? 'Regenerating...' : 'Regenerate Deep Notes'}
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRawSummary(s => !s)}
+                className="ml-2"
+              >
+                {showRawSummary ? 'Hide Raw Summary' : 'Show Raw Summary'}
+              </Button>
               <Badge variant={lecture.status === 'completed' ? 'default' : 'outline'} className="text-sm">
                 {lecture.status}
               </Badge>
@@ -215,6 +225,7 @@ export default function LectureView() {
             </CardContent>
           </Card>
         ) : (
+          <>
           <Tabs defaultValue="summary" className="space-y-6">
             <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-3 lg:w-fit lg:grid-cols-5">
               <TabsTrigger value="summary" data-testid="tab-summary">Summary</TabsTrigger>
@@ -492,6 +503,18 @@ export default function LectureView() {
               </Card>
             </TabsContent>
           </Tabs>
+          {showRawSummary && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Raw Summary (for debugging)</CardTitle>
+                <CardDescription>The exact JSON returned by the API</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <pre className="whitespace-pre-wrap text-sm bg-slate-50 p-4 rounded">{JSON.stringify(lecture.summary, null, 2)}</pre>
+              </CardContent>
+            </Card>
+          )}
+          </>
         )}
       </main>
     </div>

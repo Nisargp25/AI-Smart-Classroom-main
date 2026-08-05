@@ -100,7 +100,7 @@ export default function LecturesPage() {
                       {lecture.status}
                     </Badge>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                  <h3 className="font-semibold text-lg mb-2 group-hover:text-accentText transition-colors line-clamp-2">
                     {lecture.title}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">

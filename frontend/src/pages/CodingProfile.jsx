@@ -130,7 +130,7 @@ export default function CodingProfile() {
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <p className="text-4xl font-bold text-primary">{profile?.total_problems || 0}</p>
+                <p className="text-4xl font-bold text-accentText">{profile?.total_problems || 0}</p>
                 <p className="text-sm text-muted-foreground">Total Problems</p>
               </div>
               <div className="text-center">
@@ -236,7 +236,7 @@ export default function CodingProfile() {
                                   <p className="text-xs text-muted-foreground">Badges</p>
                                 </div>
                                 <div className="p-4 rounded-lg bg-primary/10">
-                                  <p className="text-2xl font-bold text-primary">{profile[platform.key].points}</p>
+                                  <p className="text-2xl font-bold text-accentText">{profile[platform.key].points}</p>
                                   <p className="text-xs text-muted-foreground">Points</p>
                                 </div>
                               </>
@@ -244,7 +244,7 @@ export default function CodingProfile() {
                             {platform.key === 'codechef' && (
                               <>
                                 <div className="p-4 rounded-lg bg-primary/10">
-                                  <p className="text-2xl font-bold text-primary">{profile[platform.key].rating}</p>
+                                  <p className="text-2xl font-bold text-accentText">{profile[platform.key].rating}</p>
                                   <p className="text-xs text-muted-foreground">Rating</p>
                                 </div>
                                 <div className="p-4 rounded-lg bg-amber-500/10">
@@ -256,7 +256,7 @@ export default function CodingProfile() {
                             {platform.key === 'geeksforgeeks' && (
                               <>
                                 <div className="p-4 rounded-lg bg-primary/10">
-                                  <p className="text-2xl font-bold text-primary">{profile[platform.key].score}</p>
+                                  <p className="text-2xl font-bold text-accentText">{profile[platform.key].score}</p>
                                   <p className="text-xs text-muted-foreground">Score</p>
                                 </div>
                                 <div className="p-4 rounded-lg bg-secondary/10">
@@ -297,7 +297,7 @@ export default function CodingProfile() {
                       data-testid={`recommendation-${i}`}
                     >
                       <div>
-                        <p className="font-medium group-hover:text-primary transition-colors">
+                        <p className="font-medium group-hover:text-accentText transition-colors">
                           {rec.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
@@ -314,7 +314,7 @@ export default function CodingProfile() {
                           </Badge>
                         </div>
                       </div>
-                      <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-accentText" />
                     </a>
                   )) : (
                     <p className="text-center text-muted-foreground py-4">

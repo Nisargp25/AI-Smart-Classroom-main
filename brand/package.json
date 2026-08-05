@@ -1,0 +1,11 @@
+{
+  "name": "campusai-brand-assets",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build tooling to render CampusAI SVG brand assets to raster formats (PNG/WebP/AVIF).",
+  "type": "module",
+  "scripts": {
+"render": "node scripts/render.mjs",
+    "favicon": "node scripts/favicon.mjs"
+  }
+}

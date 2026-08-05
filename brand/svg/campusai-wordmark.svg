@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" role="img" aria-labelledby="title desc">
+  <title id="title">CampusAI wordmark</title>
+  <desc id="desc">CampusAI wordmark: "Campus" in navy followed by "AI" in a bright blue gradient.</desc>
+  <defs>
+    <linearGradient id="aiGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0A6BFF"/>
+      <stop offset="1" stop-color="#39C1FF"/>
+    </linearGradient>
+  </defs>
+  <g font-family="'Poppins','Montserrat',-apple-system,'Segoe UI',sans-serif" font-size="72" font-weight="600" letter-spacing="-1">
+    <text x="0" y="80">Campus</text>
+    <text x="270" y="80" fill="url(#aiGrad)">AI</text>
+  </g>
+</svg>

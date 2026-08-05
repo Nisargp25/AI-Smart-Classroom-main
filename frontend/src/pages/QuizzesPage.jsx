@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import {
   Award,
   Clock,
@@ -18,6 +19,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState([]);
+  const [topics, setTopics] = useState([]);
+  const [selectedTopic, setSelectedTopic] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +31,9 @@ export default function QuizzesPage() {
     try {
       const response = await axios.get(`${API}/quizzes`, { withCredentials: true });
       setQuizzes(response.data);
+      // Build unique topic list
+      const topicSet = new Set((response.data || []).map(q => q.topic).filter(Boolean));
+      setTopics(['all', ...topicSet]);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
       toast.error('Failed to load quizzes');
@@ -35,6 +41,22 @@ export default function QuizzesPage() {
       setLoading(false);
     }
   };
+
+  const fetchQuizzesByTopic = async (topic) => {
+    setSelectedTopic(topic);
+    try {
+      const params = topic && topic !== 'all' ? { topic } : {};
+      const response = await axios.get(`${API}/quizzes`, { params, withCredentials: true });
+      setQuizzes(response.data);
+    } catch (error) {
+      console.error('Error fetching quizzes by topic:', error);
+      toast.error('Failed to filter quizzes');
+    }
+  };
+
+  const filteredQuizzes = selectedTopic && selectedTopic !== 'all'
+    ? quizzes.filter(q => q.topic === selectedTopic)
+    : quizzes;
 
   if (loading) {
     return (
@@ -53,14 +75,30 @@ export default function QuizzesPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Quizzes</h1>
-          <p className="text-muted-foreground">Test your knowledge and track your progress</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Quizzes</h1>
+            <p className="text-muted-foreground">Test your knowledge and track your progress</p>
+          </div>
+          {topics.length > 1 && (
+            <Select value={selectedTopic} onValueChange={fetchQuizzesByTopic}>
+              <SelectTrigger className="w-full sm:w-56" data-testid="quiz-topic-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {topics.map(topic => (
+                  <SelectItem key={topic} value={topic}>
+                    {topic === 'all' ? 'All Topics' : topic}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Quizzes Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.length > 0 ? quizzes.map((quiz, i) => (
+          {filteredQuizzes.length > 0 ? filteredQuizzes.map((quiz, i) => (
             <Card
               key={quiz.quiz_id}
               className="card-hover animate-fade-in"

@@ -122,7 +122,7 @@ export default function QuizPage() {
               
               <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="p-4 bg-accent rounded-lg">
-                  <p className="text-3xl font-bold text-primary">{result.score}/{result.total}</p>
+                  <p className="text-3xl font-bold text-accentText">{result.score}/{result.total}</p>
                   <p className="text-sm text-muted-foreground">Score</p>
                 </div>
                 <div className="p-4 bg-accent rounded-lg">

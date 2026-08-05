@@ -115,34 +115,34 @@ class AIClassroomTester:
         return success
 
     def test_lectures_endpoint(self):
-        """Test lectures endpoint (should work after seeding)"""
+        """Test lectures endpoint (should fail without auth)"""
         success, response = self.run_test(
-            "Get Lectures (Public Test)",
+            "Get Lectures (Unauthenticated)",
             "GET",
             "/lectures",
-            401  # Should require auth
+            401
         )
-        return True  # Expected to fail without auth
+        return success
 
     def test_quizzes_endpoint(self):
-        """Test quizzes endpoint (should work after seeding)"""
+        """Test quizzes endpoint (should fail without auth)"""
         success, response = self.run_test(
-            "Get Quizzes (Public Test)",
+            "Get Quizzes (Unauthenticated)",
             "GET",
             "/quizzes",
-            401  # Should require auth
+            401
         )
-        return True  # Expected to fail without auth
+        return success
 
     def test_rankings_endpoint(self):
-        """Test rankings endpoint (should work after seeding)"""
+        """Test rankings endpoint (should fail without auth)"""
         success, response = self.run_test(
-            "Get Rankings (Public Test)",
+            "Get Rankings (Unauthenticated)",
             "GET",
             "/rankings",
-            401  # Should require auth
+            401
         )
-        return True  # Expected to fail without auth
+        return success
 
     def create_test_session(self):
         """Create a test session for authenticated endpoints"""

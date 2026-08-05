@@ -303,7 +303,7 @@ export default function Certificates() {
 
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
                   <div>
-                    <p className="font-bold text-primary">{Math.round(cert.academic_score)}%</p>
+                    <p className="font-bold text-accentText">{Math.round(cert.academic_score)}%</p>
                     <p className="text-xs text-muted-foreground">Academic</p>
                   </div>
                   <div>

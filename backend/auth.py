@@ -1,5 +1,4 @@
 import os
-import httpx
 import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, Request, Response
@@ -14,20 +13,6 @@ JWT_ALGORITHM = "HS256"
 SESSION_EXPIRY_DAYS = 7
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 COOKIE_SAMESITE = os.environ.get("COOKIE_SAMESITE", "lax")
-OAUTH_SESSION_DATA_URL = os.environ.get("OAUTH_SESSION_DATA_URL", "")
-
-async def verify_oauth_session(session_id: str) -> dict:
-    """Verify session with configured OAuth provider and get user data"""
-    if not OAUTH_SESSION_DATA_URL:
-        raise HTTPException(status_code=500, detail="OAuth provider session URL is not configured")
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            OAUTH_SESSION_DATA_URL,
-            headers={"X-Session-ID": session_id}
-        )
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid session")
-        return response.json()
 
 def create_session_token(user_id: str) -> str:
     """Create a JWT session token"""
@@ -68,7 +53,7 @@ async def get_current_user(request: Request, db) -> dict:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
     # Get user from database
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     

@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { AuthCallback } from "./components/AuthCallback";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Pages
@@ -28,10 +27,7 @@ function AppRouter() {
   const location = useLocation();
   const { user, loading } = useAuth();
   
-  // Check URL fragment for session_id (synchronous check during render)
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
-  }
+  // No external OAuth callback handling required; use standard auth flow
 
   return (
     <Routes>

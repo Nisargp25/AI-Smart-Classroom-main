@@ -1,0 +1,14 @@
+=== LLM Debug Log ===
+Transcript length: 1663
+
+--- TEST 1: Simple prompt ---
+Elapsed: 0.9s | Result: 'OK'
+
+--- TEST 2: Full summary prompt ---
+Prompt length: 1699
+Elapsed: 2.3s | Empty: False
+Result length: 3841
+Preview: '{\n  "topics_learned": ["Automation", "Artificial Intelligence", "AI Automation"],\n  "topic_summaries": {\n    "Automation": "Using technology to perform tasks without human assistance",\n    "Artificial'
+JSON parse error: Expecting ',' delimiter: line 29 column 6 (char 2159)
+
+=== DONE ===

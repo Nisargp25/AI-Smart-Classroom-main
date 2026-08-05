@@ -17,30 +17,16 @@ import {
   Moon,
   Globe,
   Save,
-  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { user, updateUserRole } = useAuth();
-  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
   const [settings, setSettings] = useState({
     notifications: true,
     emailUpdates: true,
     language: 'en',
   });
-
-  const handleRoleChange = async (role) => {
-    setSaving(true);
-    try {
-      await updateUserRole(role);
-      toast.success(`Role updated to ${role}`);
-    } catch (error) {
-      toast.error('Failed to update role');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleSave = () => {
     toast.success('Settings saved successfully');
@@ -88,36 +74,30 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Role Section (Demo) */}
+          {/* Role Section */}
           <Card className="animate-fade-in stagger-1" data-testid="role-section">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
-                Role (Demo Mode)
+                Account Role
               </CardTitle>
-              <CardDescription>Switch roles to explore different dashboards</CardDescription>
+              <CardDescription>Your current account role</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
-                <Label>Current Role:</Label>
-                <Select
-                  value={user?.role}
-                  onValueChange={handleRoleChange}
-                  disabled={saving}
-                >
-                  <SelectTrigger className="w-40" data-testid="role-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                <div className="px-4 py-2 rounded-lg bg-primary/10 text-accentText font-medium capitalize">
+                  {user?.role || 'student'}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {user?.role === 'teacher'
+                    ? 'You can create lectures and quizzes.'
+                    : user?.role === 'admin'
+                    ? 'You have full system access.'
+                    : 'You can attend lectures and take quizzes.'}
+                </p>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Note: In a real app, role changes would require admin approval.
+                Role changes can only be made by an administrator.
               </p>
             </CardContent>
           </Card>

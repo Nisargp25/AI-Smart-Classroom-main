@@ -6,11 +6,16 @@ module.exports = {
     "./public/index.html"
   ],
   theme: {
-  	extend: {
+extend: {
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			sm: 'calc(var(--radius) - 4px)',
+  			brand: '8px'
+  		},
+  		fontFamily: {
+  			brand: ["'Poppins'", "'Montserrat'", 'sans-serif'],
+  			body: ["'Inter'", 'sans-serif']
   		},
   		colors: {
   			background: 'hsl(var(--background))',
@@ -46,12 +51,27 @@ module.exports = {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
-  			chart: {
+  			accentText: 'hsl(var(--accent-text))',
+chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
+  			},
+  			'brand-primary': {
+  				DEFAULT: '#1F6DB8',
+  				navy: '#0E4E93',
+  				blue: '#1F6DB8'
+  			},
+  			'brand-accent': {
+  				light: '#7CAFE5',
+  				cyan: '#5F9FDD',
+  				warm: '#F59E0B'
+  			},
+  			'brand-muted': {
+  				DEFAULT: '#7CAFE5',
+  				soft: '#EAF4FF'
   			}
   		},
   		keyframes: {

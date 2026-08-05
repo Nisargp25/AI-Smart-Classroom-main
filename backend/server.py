@@ -16,13 +16,15 @@ import aiofiles
 import json
 
 from models import (
-    User, UserCreate, Lecture, LectureCreate, Quiz, QuizQuestion, 
+    User, UserCreate, Lecture, LectureCreate, Quiz, QuizQuestion,
     QuizAttempt, Certificate, CodingProfile, Ranking, Announcement,
-    StudentPerformance, generate_id
+    StudentPerformance, generate_id,
 )
 from auth import (
-    verify_oauth_session, create_session_token, get_current_user,
-    set_session_cookie, clear_session_cookie
+    create_session_token,
+    get_current_user,
+    set_session_cookie,
+    clear_session_cookie,
 )
 AI_IMPORT_ERROR = None
 try:
@@ -157,7 +159,7 @@ def build_topic_fallback_summary(lecture: dict, error_message: str) -> dict:
     summary["important_points"] = [
         f"Subject: {subject}",
         f"Topic: {topic}",
-        f"Reason for fallback: {error_message}",
+        "This lecture was processed using auto-generated notes. AI-powered summaries will be available once the service quota resets.",
     ]
     summary["homework"] = [
         f"Review core concepts from '{topic}'.",
@@ -196,74 +198,10 @@ async def initialize_user_profile(user_id: str):
 
 # ==================== AUTH ROUTES ====================
 
-@api_router.post("/auth/session")
-async def create_session(request: Request, response: Response):
-    """Exchange OAuth provider session_id for app session token"""
-    data = await request.json()
-    session_id = data.get("session_id")
-    
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id required")
-    
-    # Verify with configured OAuth provider
-    user_data = await verify_oauth_session(session_id)
-    
-    # Check if user exists, create if not
-    user = await db.users.find_one({"email": user_data["email"]}, {"_id": 0})
-    
-    if not user:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        user = {
-            "user_id": user_id,
-            "email": user_data["email"],
-            "name": user_data["name"],
-            "picture": user_data.get("picture"),
-            "role": "student",  # Default role
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.users.insert_one(user)
-        
-        # Initialize student performance
-        await db.student_performance.insert_one({
-            "user_id": user_id,
-            "total_quizzes": 0,
-            "total_score": 0,
-            "average_percentage": 0.0,
-            "topic_scores": {},
-            "attendance": 0,
-            "streak": 0,
-            "last_active": datetime.now(timezone.utc).isoformat()
-        })
-        
-        # Initialize coding profile
-        await db.coding_profiles.insert_one({
-            "user_id": user_id,
-            "leetcode": None,
-            "hackerrank": None,
-            "codechef": None,
-            "geeksforgeeks": None,
-            "total_problems": 0,
-            "coding_score": 0.0,
-            "last_synced": datetime.now(timezone.utc).isoformat()
-        })
-    else:
-        user_id = user["user_id"]
-    
-    # Create session token
-    token = create_session_token(user_id)
-    
-    # Set cookie
-    set_session_cookie(response, token)
-    
-    # Remove _id before returning
-    user.pop("_id", None)
-    
-    return {"user": user, "token": token}
-
 @api_router.post("/auth/dev-session")
 async def create_dev_session(response: Response):
     """Create a local development session without external auth provider."""
-    user = await db.users.find_one({"email": "dev@local.test"}, {"_id": 0})
+    user = await db.users.find_one({"email": "dev@local.test"}, {"_id": 0, "password_hash": 0})
 
     if not user:
         user_id = f"dev_{uuid.uuid4().hex[:12]}"
@@ -312,6 +250,10 @@ async def register_with_email(request: Request, response: Response):
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
     name = (data.get("name") or "").strip()
+    role = (data.get("role") or "student").strip().lower()
+
+    if role not in ("student", "teacher"):
+        role = "student"
 
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password are required")
@@ -328,7 +270,7 @@ async def register_with_email(request: Request, response: Response):
         "email": email,
         "name": name or email.split("@")[0],
         "picture": None,
-        "role": "student",
+        "role": role,
         "password_hash": hash_password(password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -397,7 +339,7 @@ async def update_user_role(request: Request):
         {"$set": {"role": new_role}}
     )
     
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return user
 
 # ==================== LECTURE ROUTES ====================
@@ -616,7 +558,18 @@ async def generate_quiz(request: Request):
     data = await request.json()
     topic = data.get("topic", "General")
     lecture_id = data.get("lecture_id")
-    num_questions = data.get("num_questions", 5)
+    num_questions = data.get("num_questions", 10)
+    num_options = data.get("num_options", 4)
+
+    # Clamp to safe ranges
+    try:
+        num_questions = max(1, min(int(num_questions), 50))
+    except (TypeError, ValueError):
+        num_questions = 10
+    try:
+        num_options = max(2, min(int(num_options), 5))
+    except (TypeError, ValueError):
+        num_options = 4
     
     transcript = ""
     if lecture_id:
@@ -624,7 +577,7 @@ async def generate_quiz(request: Request):
         if lecture:
             transcript = lecture.get("clean_transcript", "") or lecture.get("raw_transcript", "")
     
-    questions = await generate_quiz_questions(topic, transcript, num_questions)
+    questions = await generate_quiz_questions(topic, transcript, num_questions, num_options)
     
     # Add question IDs
     for q in questions:
@@ -633,13 +586,15 @@ async def generate_quiz(request: Request):
     return {"questions": questions}
 
 @api_router.get("/quizzes")
-async def get_quizzes(request: Request, subject: Optional[str] = None):
-    """Get all quizzes"""
+async def get_quizzes(request: Request, subject: Optional[str] = None, topic: Optional[str] = None):
+    """Get all quizzes (optionally filtered by subject and/or topic)"""
     await get_current_user(request, db)
     
     query = {}
     if subject:
         query["subject"] = subject
+    if topic:
+        query["topic"] = topic
     
     quizzes = await db.quizzes.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return quizzes
@@ -1042,7 +997,7 @@ async def get_all_users(request: Request):
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
-    users = await db.users.find({}, {"_id": 0}).to_list(1000)
+    users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return users
 
 @api_router.get("/admin/stats")
