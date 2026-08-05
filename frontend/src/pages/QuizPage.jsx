@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Navbar } from '../components/Navbar';
@@ -32,11 +32,7 @@ export default function QuizPage() {
   const [result, setResult] = useState(null);
   const [startTime] = useState(Date.now());
 
-  useEffect(() => {
-    fetchQuiz();
-  }, [quizId]);
-
-  const fetchQuiz = async () => {
+  const fetchQuiz = useCallback(async () => {
     try {
       const response = await axios.get(`${API}/quizzes/${quizId}`, { withCredentials: true });
       setQuiz(response.data);
@@ -46,7 +42,11 @@ export default function QuizPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId]);
+
+  useEffect(() => {
+    fetchQuiz();
+  }, [fetchQuiz]);
 
   const handleAnswer = (questionId, answerIndex) => {
     setAnswers(prev => ({ ...prev, [questionId]: answerIndex }));

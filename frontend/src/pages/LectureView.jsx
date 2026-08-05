@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Navbar } from '../components/Navbar';
@@ -36,23 +36,7 @@ export default function LectureView() {
   const [refreshingStatus, setRefreshingStatus] = useState(false);
   const [showRawSummary, setShowRawSummary] = useState(false);
 
-  useEffect(() => {
-    fetchLecture();
-  }, [lectureId]);
-
-  useEffect(() => {
-    if (!lecture || lecture.status === 'completed') {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      fetchLecture({ silent: true });
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [lecture?.status]);
-
-  const fetchLecture = async ({ silent = false } = {}) => {
+  const fetchLecture = useCallback(async ({ silent = false } = {}) => {
     try {
       const response = await axios.get(`${API}/lectures/${lectureId}`, { withCredentials: true });
       setLecture(response.data);
@@ -66,7 +50,23 @@ export default function LectureView() {
         setLoading(false);
       }
     }
-  };
+  }, [lectureId]);
+
+  useEffect(() => {
+    fetchLecture();
+  }, [fetchLecture]);
+
+  useEffect(() => {
+    if (!lecture || lecture.status === 'completed') {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      fetchLecture({ silent: true });
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchLecture, lecture?.status]);
 
   const handleProcessNow = async () => {
     try {
