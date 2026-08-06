@@ -32,7 +32,31 @@ const webpackConfig = {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
-    configure: (webpackConfig) => {
+configure: (webpackConfig) => {
+
+      // Fix: prevent source-map-loader from failing on missing source maps
+      // inside node_modules (e.g. recharts -> nested immer). recharts declares
+      // immer as a dependency but it is hoisted, so the nested
+      // node_modules/recharts/node_modules/immer/dist/immer.mjs path does not
+      // exist. Excluding node_modules from source-map-loader avoids the
+      // "Module build failed ... ENOENT" error at build time.
+// The source-map-loader rule in CRA can be structured with `use` as
+      // either a single object or an array of loaders, so we check both shapes.
+      const isSourceMapLoader = (use) => {
+        if (!use) return false;
+        const items = Array.isArray(use) ? use : [use];
+        return items.some(
+          (u) => u && u.loader && String(u.loader).includes('source-map-loader')
+        );
+      };
+
+      webpackConfig.module.rules.forEach((rule) => {
+        if (rule && rule.use && isSourceMapLoader(rule.use)) {
+          rule.exclude = rule.exclude
+            ? [].concat(rule.exclude).concat([/node_modules/])
+            : [/node_modules/];
+        }
+      });
 
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {

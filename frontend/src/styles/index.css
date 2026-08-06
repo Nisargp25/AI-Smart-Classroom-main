@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -333,5 +333,195 @@ code, pre {
     [data-debug-wrapper="true"] {
         display: contents !important;
     }
+}
+
+/* ==============================
+   Premium AI Dashboard Styles
+   ============================== */
+
+.ai-dashboard-bg {
+    background-color: #F8FAFC;
+    background-image:
+        linear-gradient(to right, rgb(226 232 240 / 0.5) 1px, transparent 1px),
+        linear-gradient(to bottom, rgb(226 232 240 / 0.5) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.ai-card {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 24px;
+    box-shadow: 0 10px 15px -3px rgb(15 23 42 / 0.06), 0 4px 6px -4px rgb(15 23 42 / 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.ai-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 40px -12px rgb(15 23 42 / 0.12);
+}
+
+/* Dark glassmorphism navbar */
+.ai-navbar {
+    background-color: rgba(17, 24, 39, 0.75);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* AI Insights soft green gradient */
+.ai-insights-bg {
+    background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 40%, #A7F3D0 100%);
+}
+
+@keyframes float-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-float-slow {
+    animation: float-slow 4s ease-in-out infinite;
+}
+
+@keyframes pulse-ring-ai {
+    0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+    70% { box-shadow: 0 0 0 18px rgba(99, 102, 241, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+.animate-pulse-ring-ai {
+    animation: pulse-ring-ai 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==============================
+   Playful EdTech Elements
+   (Duolingo / LexieLingua style)
+   ============================== */
+
+/* Soft pastel gradient chips & badges */
+.pastel-chip {
+    background: linear-gradient(135deg, #FCE7F3 0%, #FDE68A 50%, #BBF7D0 100%);
+    border-radius: 9999px;
+}
+
+/* Pastel gradient card backgrounds */
+.pastel-card-pink {
+    background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+}
+.pastel-card-mint {
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+}
+.pastel-card-sky {
+    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+}
+.pastel-card-lavender {
+    background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
+}
+.pastel-card-peach {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+}
+
+/* Gentle bobbing float with different styles */
+@keyframes float-bob {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-12px) rotate(3deg); }
+}
+.animate-float-bob {
+    animation: float-bob 3s ease-in-out infinite;
+}
+
+@keyframes float-bob-slow {
+    0%, 100% { transform: translateY(0) rotate(3deg); }
+    50% { transform: translateY(-8px) rotate(-3deg); }
+}
+.animate-float-bob-slow {
+    animation: float-bob-slow 4s ease-in-out infinite;
+}
+
+/* Wiggle for stickers on hover */
+@keyframes wiggle {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+}
+.group:hover .group-hover-wiggle {
+    animation: wiggle 0.4s ease-in-out;
+}
+
+/* Confetti-ish sparkle twinkle */
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+.animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Decorative dashed doodle border */
+.doodle-border {
+    border: 2px dashed rgba(245, 158, 11, 0.5);
+    border-radius: 24px;
+}
+
+/* Soft squishy pastel blob */
+.pastel-blob {
+    border-radius: 60% 40% 55% 45% / 55% 45% 60% 40%;
+}
+
+/* ==============================
+   Premium Bento-Grid Dashboard
+   (Floating pill navbar + hero + bento tiles)
+   ============================== */
+
+/* Floating glass pill navbar */
+.floating-nav {
+    position: sticky;
+    top: 16px;
+    z-index: 50;
+    margin: 16px auto 0;
+    background-color: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 9999px;
+    box-shadow: 0 12px 40px -12px rgba(15, 23, 42, 0.18);
+}
+
+/* Bento tile base — soft, rounded, hover lift */
+.bento-tile {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    border-radius: 24px;
+    box-shadow: 0 10px 25px -8px rgba(15, 23, 42, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.bento-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -16px rgba(15, 23, 42, 0.16);
+}
+
+/* Hero gradient banner */
+.ai-hero {
+    background: linear-gradient(120deg, #EEF2FF 0%, #E0E7FF 35%, #FCE7F3 70%, #FEF3C7 100%);
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 45px -20px rgba(99, 102, 241, 0.35);
+}
+
+/* Large AI insight/daily-focus card gradient */
+.ai-daily-bg {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #DB2777 100%);
+}
+
+/* Marquee-ish glow for large numbers */
+.bento-number {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* Mascot gentle bob */
+@keyframes mascot-bob {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-10px) rotate(-4deg); }
+}
+.animate-mascot-bob {
+    animation: mascot-bob 3.5s ease-in-out infinite;
 }
 

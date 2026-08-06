@@ -11,6 +11,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import AIDashboard from "./pages/AIDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import LecturesPage from "./pages/LecturesPage";
@@ -42,6 +43,46 @@ function AppRouter() {
         element={
           <ProtectedRoute>
             <DashboardRouter />
+          </ProtectedRoute>
+        }
+      />
+<Route
+        path="/dash"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dash/learning"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dash/assistant"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dash/assignments"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dash/analytics"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
           </ProtectedRoute>
         }
       />

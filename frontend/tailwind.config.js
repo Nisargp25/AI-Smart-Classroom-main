@@ -5,17 +5,36 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
     "./public/index.html"
   ],
-  theme: {
+theme: {
 extend: {
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)',
-  			brand: '8px'
+  			brand: '8px',
+  			'2xl3': '24px'
   		},
   		fontFamily: {
   			brand: ["'Poppins'", "'Montserrat'", 'sans-serif'],
-  			body: ["'Inter'", 'sans-serif']
+  			body: ["'Inter'", 'sans-serif'],
+  			display: ["'Outfit'", 'sans-serif'],
+  			sans: ["'Inter'", 'sans-serif'],
+  			mono: ["'JetBrains Mono'", 'monospace']
+  		},
+  		boxShadow: {
+  			soft: '0 10px 15px -3px rgb(15 23 42 / 0.08), 0 4px 6px -4px rgb(15 23 42 / 0.08)',
+  			'soft-lg': '0 20px 40px -12px rgb(15 23 42 / 0.12)',
+  			glow: '0 0 30px -5px rgb(99 102 241 / 0.4)'
+  		},
+  		backgroundImage: {
+  			'grid-pattern':
+  				'linear-gradient(to right, rgb(226 232 240 / 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgb(226 232 240 / 0.6) 1px, transparent 1px)',
+  			'grid-pattern-subtle':
+  				'linear-gradient(to right, rgb(148 163 184 / 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.12) 1px, transparent 1px)'
+  		},
+  		backgroundSize: {
+  			'grid-sm': '24px 24px',
+  			'grid-md': '40px 40px'
   		},
   		colors: {
   			background: 'hsl(var(--background))',

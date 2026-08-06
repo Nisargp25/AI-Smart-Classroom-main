@@ -29,6 +29,7 @@ import {
   Sparkles,
   Send,
   X,
+  Trophy,
 } from 'lucide-react';
 import {
   BarChart,
@@ -40,6 +41,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { toast } from 'sonner';
+import StreakBadge from '../components/ai-dashboard/StreakBadge';
+import DoodleArrow from '../components/ai-dashboard/DoodleArrow';
+import FloatingStickers from '../components/ai-dashboard/FloatingStickers';
+import DecorativeBlobs from '../components/ai-dashboard/DecorativeBlobs';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -228,18 +233,30 @@ export default function TeacherDashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background" data-testid="teacher-dashboard">
+return (
+    <div className="min-h-screen relative overflow-x-hidden" data-testid="teacher-dashboard">
       <Navbar />
+      <DecorativeBlobs />
+      <FloatingStickers />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Teacher Dashboard</h1>
             <p className="text-muted-foreground">Manage lectures, create quizzes, and track student progress</p>
+            <div className="relative mt-2 hidden xl:block">
+              <DoodleArrow className="absolute -left-24 top-0 w-28 h-16" color="#F59E0B" slight />
+            </div>
           </div>
-          <Dialog open={showRecordDialog} onOpenChange={setShowRecordDialog}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <StreakBadge days={12} size="sm" />
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-500 bg-purple-50 px-3 py-1.5 rounded-full mt-2 ml-2">
+                <Trophy className="w-3 h-3" /> Top Teacher
+              </span>
+            </div>
+            <Dialog open={showRecordDialog} onOpenChange={setShowRecordDialog}>
             <DialogTrigger asChild>
               <Button className="rounded-full" data-testid="new-lecture-btn">
                 <Plus className="w-4 h-4 mr-2" />
@@ -338,8 +355,9 @@ export default function TeacherDashboard() {
                   </div>
                 )}
               </div>
-            </DialogContent>
+</DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats */}

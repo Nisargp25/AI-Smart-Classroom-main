@@ -1,0 +1,33 @@
+INFO:     Started server process [13472]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52973 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52976 - "POST /api/demo/seed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52984 - "GET /api/lectures HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52986 - "GET /api/quizzes HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52988 - "GET /api/rankings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:52991 - "POST /api/auth/session HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52998 - "GET /api/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53031 - "GET /api/ HTTP/1.1" 200 OK
+c:\Users\NISARG\OneDrive\\ubb38\uc11c\AI-Smart-Classroom-main\.venv\Lib\site-packages\jwt\api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 9 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+INFO:     127.0.0.1:53032 - "POST /api/auth/dev-session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53033 - "POST /api/demo/seed HTTP/1.1" 200 OK
+c:\Users\NISARG\OneDrive\\ubb38\uc11c\AI-Smart-Classroom-main\.venv\Lib\site-packages\jwt\api_jwt.py:365: InsecureKeyLengthWarning: The HMAC key is 9 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+INFO:     127.0.0.1:53034 - "GET /api/lectures HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53035 - "GET /api/quizzes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53036 - "GET /api/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53037 - "GET /api/coding-profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53038 - "GET /api/rankings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53039 - "GET /api/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53040 - "GET /api/announcements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53041 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53042 - "GET /api/rankings/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53043 - "GET /api/coding-recommendations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53044 - "POST /api/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53045 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53046 - "GET /api/lectures HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:53047 - "GET /api/rankings HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:53048 - "GET /api/quizzes HTTP/1.1" 401 Unauthorized

@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Play,
   Bell,
+  Sparkles,
 } from 'lucide-react';
 import {
   LineChart,
@@ -31,6 +32,11 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import API, { debugLog, debugError } from '../lib/api';
+import StreakBadge from '../components/ai-dashboard/StreakBadge';
+import DoodleArrow from '../components/ai-dashboard/DoodleArrow';
+import FloatingStickers from '../components/ai-dashboard/FloatingStickers';
+import DecorativeBlobs from '../components/ai-dashboard/DecorativeBlobs';
+import ProgressRing from '../components/ai-dashboard/ProgressRing';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -143,19 +149,32 @@ export default function Dashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background" data-testid="student-dashboard">
+return (
+    <div className="min-h-screen relative overflow-x-hidden" data-testid="student-dashboard">
       <Navbar />
+      <DecorativeBlobs />
+      <FloatingStickers />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
-            Welcome back, {user?.name?.split(' ')[0]}!
-          </h1>
-          <p className="text-muted-foreground">
-            Track your progress, review lectures, and keep your streak going.
-          </p>
+        <div className="mb-8 animate-fade-in flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
+              Welcome back, {user?.name?.split(' ')[0]}!
+            </h1>
+            <p className="text-muted-foreground">
+              Track your progress, review lectures, and keep your streak going.
+            </p>
+            <div className="relative mt-2 hidden xl:block">
+              <DoodleArrow className="absolute -left-24 top-0 w-28 h-16" color="#F59E0B" slight />
+            </div>
+          </div>
+          <div className="relative">
+            <StreakBadge days={performance?.streak || 0} size="md" />
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-500 bg-purple-50 px-3 py-1.5 rounded-full mt-2 ml-2">
+              <Sparkles className="w-3 h-3 animate-twinkle" /> Level 8 Explorer
+            </span>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -259,9 +278,19 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-lg">Topic Mastery</CardTitle>
               </CardHeader>
-              <CardContent>
+<CardContent>
                 {topicData.length > 0 ? (
                   <div className="space-y-4">
+                    <div className="flex justify-center mb-2">
+                      <ProgressRing
+                        value={performance?.average_percentage || 0}
+                        size={110}
+                        color="#4f46e5"
+                        label="Avg"
+                        sub="Score"
+                        delay={0.3}
+                      />
+                    </div>
                     {topicData.map((topic, i) => (
                       <div key={i}>
                         <div className="flex justify-between text-sm mb-1">

@@ -1,33 +1,29 @@
-# CampusAI Brand Asset System — Task Checklist
+# AI Dashboard Redesign — Premium LexieLingua-Style Bento Grid
 
-## Vector SVGs
-- [x] brand/svg/campusai-logo-full.svg (master mark + wordmark)
-- [x] brand/svg/campusai-icon.svg (square mark)
-- [x] brand/svg/campusai-logo-horizontal.svg (icon + wordmark)
-- [x] brand/svg/campusai-wordmark.svg (wordmark only)
-- [x] brand/svg/campusai-icon-monochrome.svg
-- [x] brand/svg/campusai-logo-horizontal-monochrome.svg
-- [x] brand/svg/campusai-wordmark-monochrome.svg
+## Task
+Completely redesign the AI dashboard (not just restyle) to match a premium EdTech platform:
+Bento-grid layout, playful illustrations, floating top navbar, large AI insight cards,
+and an asymmetric dashboard structure. The result should not resemble the original dashboard.
 
-## Raster Exports (PNG + WebP, 1x/2x/3x)
-- [x] Icon: 48/96/144 PNG + WebP
-- [x] Horizontal: 150/300/450 PNG + WebP
-- [x] Optimized WebP/AVIF production versions
+## Plan Steps
+- [x] Analyze current AIDashboard.jsx + components + CSS
+- [x] Create new `Mascot.jsx` playful illustration component
+- [x] Add bento/floating-nav/mascot CSS utilities to `index.css`
+- [x] Redesign `AIDashboardNavbar.jsx` into a floating glass pill navbar
+- [x] Completely rebuild `AIDashboard.jsx` with asymmetric Bento-grid + hero + large AI cards
+- [x] Verify `npm run build` compiles successfully → **Compiled successfully**
 
-## Favicons
-- [x] campusai-favicon-16.png, campusai-favicon-32.png, campusai-favicon.ico
+## Result Summary
+- **Floating pill navbar** (glassmorphism, rounded-full, spring entrance) replacing the full-width dark bar
+- **Playful hero** with animated `Mascot` illustration, level chip, streak badge, and "Start Learning" CTA
+- **Asymmetric Bento-grid**: stat tiles span 2/1/1/1/2 ("broken grid"), 8/12 left + 4/12 right column split
+- **Large AI "Daily Focus" card** spanning 2 columns with gradient (indigo→purple→pink), mastery ring, AI recommendation text, and CTA
+- **Playful recent lecture cards** with emoji icons and hover lift (not a plain list)
+- **Today's Goals checklist** card with progress chip
+- **Reimagined sidebar** with pastel gradient "AI Pro" upgrade card and doodle border
+- **New `Mascot.jsx`** reusable animated illustration component
+- **New CSS utilities**: `floating-nav`, `bento-tile`, `ai-hero`, `ai-daily-bg`, `bento-number`, `animate-mascot-bob`
 
-## Brand Guide
-- [x] brand/campusai-brand-guide.md
+## Build Verification
+`npm run build` (craco build — the command Vercel runs) → **"Compiled successfully"** (no ESLint errors)
 
-## React Component
-- [x] Rewrite frontend/src/components/CampusAiLogo.jsx (inline SVG + fallback)
-
-## Tailwind / Tokens
-- [x] Append brand tokens to frontend/tailwind.config.js
-- [x] brand/tokens.json
-
-## Docs & Commit
-- [x] brand/README-USAGE.md
-- [x] brand/EXPORT-MANIFEST.md
-- [x] Suggested commit message noted
