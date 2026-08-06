@@ -8,7 +8,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "fallback_secret_key")
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+if len(JWT_SECRET) < 32:
+    print("WARNING: JWT_SECRET is missing or shorter than 32 bytes. "
+    "Using an insecure fallback. Set a strong JWT_SECRET (>=32 bytes) in production.")
+    JWT_SECRET = "change_me_in_production_use_32_byte_secret"
 JWT_ALGORITHM = "HS256"
 SESSION_EXPIRY_DAYS = 7
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"

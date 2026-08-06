@@ -2,50 +2,76 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
+
   pull_request:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
 jobs:
   frontend:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'yarn'
+          cache: yarn
           cache-dependency-path: frontend/yarn.lock
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      - run: npx eslint src/ --ext .js,.jsx --max-warnings 0
-        continue-on-error: true # until lint is clean
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build frontend
+        run: yarn build
+
+      - name: Run ESLint
+        run: npx eslint src/ --ext .js,.jsx --max-warnings 0
+        continue-on-error: true
 
   backend:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: backend
+
     services:
       mongodb:
         image: mongo:7
         ports:
           - 27017:27017
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -r requirements.txt
-      - run: pip install pytest httpx
-      - name: Run tests
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run backend tests
         env:
           MONGO_URL: mongodb://localhost:27017
           DB_NAME: campusai_test
-          JWT_SECRET: ci_test_secret
-        run: python -m pytest tests/ -v
-
+          JWT_SECRET: ci_test_secret_32_bytes_long_here
+        run: |
+          python -m pytest tests/ -v

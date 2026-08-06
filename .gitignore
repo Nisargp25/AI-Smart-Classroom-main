@@ -47,6 +47,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dump.rdb
+*.log
+backend/_call_llm
+backend/llm_raw_response.txt
 
 # System files
 .DS_Store
