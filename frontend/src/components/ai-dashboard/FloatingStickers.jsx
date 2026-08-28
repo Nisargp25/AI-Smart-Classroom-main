@@ -8,14 +8,14 @@ import { Sparkles, Star, Trophy, Zap, Heart, BookMarked, GraduationCap, Rocket }
  * offset so they don't all move in sync.
  */
 const STICKERS = [
-  { icon: Sparkles, color: '#8B5CF6', pos: 'top-[8%] right-[4%]', size: 34, float: '0s' },
+  { icon: Sparkles, color: '#1F6DB8', pos: 'top-[8%] right-[4%]', size: 34, float: '0s' },
   { icon: Star, color: '#F59E0B', pos: 'top-[30%] left-[2%]', size: 28, float: '-2s' },
-  { icon: Trophy, color: '#10B981', pos: 'bottom-[22%] right-[3%]', size: 30, float: '-4s' },
+  { icon: Trophy, color: '#0E4E93', pos: 'bottom-[22%] right-[3%]', size: 30, float: '-4s' },
   { icon: Zap, color: '#F59E0B', pos: 'top-[55%] right-[5%]', size: 26, float: '-1s' },
-  { icon: Heart, color: '#F43F5E', pos: 'top-[12%] left-[4%]', size: 24, float: '-3s' },
-  { icon: BookMarked, color: '#3B82F6', pos: 'bottom-[40%] left-[3%]', size: 28, float: '-5s' },
-  { icon: GraduationCap, color: '#8B5CF6', pos: 'top-[68%] right-[2%]', size: 26, float: '-2.5s' },
-  { icon: Rocket, color: '#0EA5E9', pos: 'bottom-[8%] left-[6%]', size: 30, float: '-1.5s' },
+  { icon: Heart, color: '#5F9FDD', pos: 'top-[12%] left-[4%]', size: 24, float: '-3s' },
+  { icon: BookMarked, color: '#1F6DB8', pos: 'bottom-[40%] left-[3%]', size: 28, float: '-5s' },
+  { icon: GraduationCap, color: '#7CAFE5', pos: 'top-[68%] right-[2%]', size: 26, float: '-2.5s' },
+  { icon: Rocket, color: '#39C1FF', pos: 'bottom-[8%] left-[6%]', size: 30, float: '-1.5s' },
 ];
 
 export default function FloatingStickers() {

@@ -14,6 +14,8 @@ class User(BaseModel):
     name: str
     picture: Optional[str] = None
     role: str = "student"  # student, teacher, admin
+    class_name: Optional[str] = None  # e.g. "IT-3"
+    division: Optional[str] = None    # e.g. "A"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
 class UserCreate(BaseModel):
@@ -21,6 +23,8 @@ class UserCreate(BaseModel):
     name: str
     picture: Optional[str] = None
     role: str = "student"
+    class_name: Optional[str] = None
+    division: Optional[str] = None
 
 class UserSession(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -40,6 +44,8 @@ class Lecture(BaseModel):
     teacher_id: str
     teacher_name: str
     batch: str = "All"
+    class_name: Optional[str] = None  # e.g. "IT-3"
+    division: Optional[str] = None    # e.g. "A"
     audio_path: Optional[str] = None
     duration: int = 0  # in seconds
     raw_transcript: Optional[str] = None
@@ -53,6 +59,8 @@ class LectureCreate(BaseModel):
     subject: str
     topic: str
     batch: str = "All"
+    class_name: Optional[str] = None
+    division: Optional[str] = None
 
 # Quiz Models
 class QuizQuestion(BaseModel):

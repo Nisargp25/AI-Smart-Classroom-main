@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export default function AIProgressBar({ value, color = 'bg-indigo-500', label, delay = 0 }) {
+export default function AIProgressBar({ value, color = 'bg-brand-primary', label, delay = 0 }) {
   return (
     <div>
       {label && (

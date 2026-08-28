@@ -60,7 +60,7 @@ export default function AISidebar() {
               {active && (
                 <motion.span
                   layoutId="sidebar-pill"
-                  className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 shadow-lg shadow-indigo-500/30"
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent-light shadow-lg shadow-brand-primary/30"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -82,7 +82,7 @@ export default function AISidebar() {
               key={f.label}
               className="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 cursor-pointer transition-colors"
             >
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white">
+<span className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-accent-cyan to-brand-primary flex items-center justify-center text-white">
                 <f.icon className="w-4 h-4" />
               </span>
               <span className="text-sm font-medium">{f.label}</span>
@@ -92,13 +92,13 @@ export default function AISidebar() {
       </div>
 
       {/* Playful upgrade card */}
-      <div className="mt-auto hidden xl:block p-4 rounded-3xl pastel-card-peach border border-amber-200/60 doodle-border">
+      <div className="mt-auto hidden xl:block p-4 rounded-3xl bg-brand-soft border border-brand-accent-light/50">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-4 h-4 text-amber-500 animate-twinkle" />
+          <Sparkles className="w-4 h-4 text-brand-primary animate-twinkle" />
           <p className="font-semibold text-gray-900 text-sm">AI Pro</p>
         </div>
         <p className="text-xs text-gray-500 mb-3">Unlock unlimited AI magic</p>
-        <button className="w-full py-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-semibold hover:brightness-105 transition-all shadow-md shadow-amber-500/30">
+        <button className="w-full py-2 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent-light text-white text-xs font-semibold hover:brightness-105 transition-all shadow-md shadow-brand-primary/30">
           Upgrade ✨
         </button>
       </div>

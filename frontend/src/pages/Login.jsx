@@ -36,7 +36,9 @@ export default function Login() {
 
   return (
     <AuthLayout
-      subtitle="Welcome back! Sign in to continue learning."
+      page="login"
+      title="Welcome Back"
+      subtitle="Sign in to continue your learning journey."
       altAction={{
         text: "Don't have an account?",
         linkText: 'Sign up',
@@ -84,10 +86,11 @@ export default function Login() {
           </div>
         </div>
 
-        <Button
+<Button
           type="submit"
           disabled={loading}
-          className="h-12 w-full rounded-xl bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10 transition-all"
+          variant="gradient"
+          className="h-12 w-full shadow-lg shadow-brand-primary/25"
           size="lg"
           data-testid="login-button"
         >

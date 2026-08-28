@@ -13,7 +13,7 @@ export default function StatCard({ icon: Icon, label, value, sub, gradient, acce
       transition={{ duration: 0.5, delay }}
       whileHover={{ y: -4, scale: 1.01 }}
       className={`bento-tile p-5 h-full flex flex-col ${
-        accent ? 'pastel-card-sky border-indigo-100' : ''
+        accent ? 'pastel-card-sky border-brand-accent-light' : ''
       }`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -24,7 +24,7 @@ export default function StatCard({ icon: Icon, label, value, sub, gradient, acce
       </div>
       <p className="bento-number text-3xl font-bold text-gray-900">{value}</p>
       {sub && (
-        <p className={`text-sm mt-1 ${accent ? 'text-indigo-600 font-medium' : 'text-gray-500'}`}>{sub}</p>
+        <p className={`text-sm mt-1 ${accent ? 'text-brand-primary font-medium' : 'text-gray-500'}`}>{sub}</p>
       )}
     </motion.div>
   );

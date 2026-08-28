@@ -2,11 +2,18 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef(({ className, ...props }, ref) => (
+// Unified Card — 24px radius (rounded-brand-lg), soft brand shadow, hover lift micro-interaction.
+const Card = React.forwardRef(({ className, hover = false, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
-    {...props} />
+    className={cn(
+      "rounded-[24px] border border-border/60 bg-card text-card-foreground shadow-[0_2px_12px_rgba(14,78,147,0.06)]",
+      hover &&
+        "transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(14,78,147,0.12)] hover:border-brand-primary/30",
+      className
+    )}
+    {...props}
+  />
 ))
 Card.displayName = "Card"
 

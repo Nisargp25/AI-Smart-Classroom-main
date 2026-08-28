@@ -7,12 +7,16 @@ module.exports = {
   ],
 theme: {
 extend: {
-  		borderRadius: {
+borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)',
-  			brand: '8px',
-  			'2xl3': '24px'
+  			brand: '1.5rem',
+  			'2xl3': '24px',
+  			'brand-sm': '12px',
+  			'brand-lg': '24px',
+  			'brand-xl': '32px',
+  			'brand-full': '9999px'
   		},
   		fontFamily: {
   			brand: ["'Poppins'", "'Montserrat'", 'sans-serif'],
@@ -26,11 +30,12 @@ extend: {
   			'soft-lg': '0 20px 40px -12px rgb(15 23 42 / 0.12)',
   			glow: '0 0 30px -5px rgb(99 102 241 / 0.4)'
   		},
-  		backgroundImage: {
+backgroundImage: {
   			'grid-pattern':
   				'linear-gradient(to right, rgb(226 232 240 / 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgb(226 232 240 / 0.6) 1px, transparent 1px)',
   			'grid-pattern-subtle':
-  				'linear-gradient(to right, rgb(148 163 184 / 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.12) 1px, transparent 1px)'
+  				'linear-gradient(to right, rgb(148 163 184 / 0.12) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.12) 1px, transparent 1px)',
+  			'brand-gradient': 'linear-gradient(90deg, #0A6BFF 0%, #39C1FF 100%)'
   		},
   		backgroundSize: {
   			'grid-sm': '24px 24px',
@@ -88,10 +93,11 @@ chart: {
   				cyan: '#5F9FDD',
   				warm: '#F59E0B'
   			},
-  			'brand-muted': {
+'brand-muted': {
   				DEFAULT: '#7CAFE5',
   				soft: '#EAF4FF'
-  			}
+  			},
+  			'brand-soft': '#EAF4FF'
   		},
   		keyframes: {
   			'accordion-down': {

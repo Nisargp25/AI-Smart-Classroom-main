@@ -39,7 +39,9 @@ export default function Register() {
 
   return (
     <AuthLayout
-      subtitle="Create your account and start learning."
+      page="register"
+      title="Create your account"
+      subtitle="Join CampusAI and start learning smarter."
       altAction={{
         text: 'Already have an account?',
         linkText: 'Sign in',
@@ -153,10 +155,11 @@ export default function Register() {
           </div>
         </div>
 
-        <Button
+<Button
           type="submit"
           disabled={loading}
-          className="h-12 w-full rounded-xl bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10 transition-all"
+          variant="gradient"
+          className="h-12 w-full shadow-lg shadow-brand-primary/25"
           size="lg"
           data-testid="register-button"
         >

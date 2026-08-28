@@ -10,15 +10,15 @@ import {
 } from 'lucide-react';
 
 const ASSIGNMENTS = [
-  { title: 'Linear Algebra Problem Set', course: 'Math 101', due: 'Tomorrow', color: 'bg-indigo-500' },
-  { title: 'Essay: AI Ethics', course: 'English 204', due: 'Fri', color: 'bg-pink-500' },
-  { title: 'Physics Lab Report', course: 'Physics 150', due: 'Next Mon', color: 'bg-emerald-500' },
+  { title: 'Linear Algebra Problem Set', course: 'Math 101', due: 'Tomorrow', color: 'bg-brand-primary' },
+  { title: 'Essay: AI Ethics', course: 'English 204', due: 'Fri', color: 'bg-brand-accent-cyan' },
+  { title: 'Physics Lab Report', course: 'Physics 150', due: 'Next Mon', color: 'bg-brand-accent-light' },
 ];
 
 const DEADLINES = [
-  { title: 'Capstone Proposal', date: 'Mar 28', priority: 'High', color: 'text-red-500' },
-  { title: 'Quiz 3 - Calculus', date: 'Apr 02', priority: 'Medium', color: 'text-amber-500' },
-  { title: 'Group Presentation', date: 'Apr 05', priority: 'Low', color: 'text-emerald-500' },
+  { title: 'Capstone Proposal', date: 'Mar 28', priority: 'High', color: 'text-brand-primary' },
+  { title: 'Quiz 3 - Calculus', date: 'Apr 02', priority: 'Medium', color: 'text-brand-accent-warm' },
+  { title: 'Group Presentation', date: 'Apr 05', priority: 'Low', color: 'text-brand-accent-cyan' },
 ];
 
 const PENDING_QUIZZES = [
@@ -27,15 +27,15 @@ const PENDING_QUIZZES = [
 ];
 
 const NOTIFICATIONS = [
-  { title: 'New lecture available', desc: 'AI Ethics — uploaded', time: '2m ago', color: 'bg-indigo-500' },
-  { title: 'Quiz graded', desc: 'You scored 92%', time: '1h ago', color: 'bg-emerald-500' },
-  { title: 'Streak at risk', desc: 'Complete today to keep 12-day streak', time: '3h ago', color: 'bg-amber-500' },
+  { title: 'New lecture available', desc: 'AI Ethics — uploaded', time: '2m ago', color: 'bg-brand-primary' },
+  { title: 'Quiz graded', desc: 'You scored 92%', time: '1h ago', color: 'bg-brand-accent-cyan' },
+  { title: 'Streak at risk', desc: 'Complete today to keep 12-day streak', time: '3h ago', color: 'bg-brand-accent-warm' },
 ];
 
 const EVENTS = [
-  { day: '18', month: 'Mar', title: 'Midterm Exam', color: 'bg-rose-500' },
-  { day: '21', month: 'Mar', title: 'Project Demo', color: 'bg-purple-500' },
-  { day: '25', month: 'Mar', title: 'Guest Lecture', color: 'bg-cyan-500' },
+  { day: '18', month: 'Mar', title: 'Midterm Exam', color: 'bg-brand-primary' },
+  { day: '21', month: 'Mar', title: 'Project Demo', color: 'bg-brand-accent-cyan' },
+  { day: '25', month: 'Mar', title: 'Guest Lecture', color: 'bg-brand-accent-light' },
 ];
 
 function Section({ icon: Icon, title, children, badge }) {
@@ -48,10 +48,10 @@ className="bento-tile p-5"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-indigo-500" />
+          <Icon className="w-4 h-4 text-brand-primary" />
           <h3 className="font-display font-semibold text-gray-900 text-sm">{title}</h3>
           {badge && (
-            <span className="text-[10px] font-bold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-brand-soft text-brand-primary px-2 py-0.5 rounded-full">
               {badge}
             </span>
           )}
@@ -106,7 +106,7 @@ export default function RightSidebar() {
                 <p className="text-sm font-medium text-gray-800">{q.title}</p>
                 <p className="text-xs text-gray-500">{q.questions} questions · {q.time}</p>
               </div>
-              <button className="text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-colors">
+<button className="text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-dark px-3 py-1.5 rounded-lg transition-colors">
                 Start
               </button>
             </div>

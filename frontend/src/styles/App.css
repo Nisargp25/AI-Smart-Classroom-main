@@ -25,11 +25,11 @@
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px -15px rgba(14, 78, 147, 0.15);
 }
 
 .dark .card-hover:hover {
-  box-shadow: 0 10px 40px -15px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 10px 40px -15px rgba(31, 109, 184, 0.3);
 }
 
 /* Glass effect */
@@ -37,11 +37,11 @@
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(232, 213, 158, 0.3);
+  border-bottom: 1px solid rgba(234, 244, 255, 0.4);
 }
 
 .dark .glass {
-  background: rgba(23, 23, 23, 0.7);
+  background: rgba(11, 26, 44, 0.7);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 

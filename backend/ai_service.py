@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-LLM_API_KEY = os.environ.get("LLM_API_KEY") or ""
+# This backend talks to Groq directly via HTTP. Keep the credential explicit so
+# we do not accidentally route through a different provider such as Vercel AI Gateway.
+LLM_API_KEY = os.environ.get("GROQ_API_KEY") or os.environ.get("LLM_API_KEY") or ""
 
 # Map friendly model names to Groq API model IDs
 GROQ_MODEL_MAP = {
@@ -95,6 +97,15 @@ def _call_llm(prompt: str, system_instruction: Optional[str] = None, max_retries
         return ""
 
     return ""
+
+
+async def generate_chat_response(message: str) -> str:
+    """Generate a chat response with the configured Groq model."""
+    system_instruction = (
+        "You are CampusAI, a helpful classroom assistant. Answer the user's "
+        "question clearly and at an appropriate level for a student."
+    )
+    return _call_llm(message.strip(), system_instruction, model="openai/gpt-oss-120b", max_tokens=1024)
 
 
 def _parse_json(text: str):

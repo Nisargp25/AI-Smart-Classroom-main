@@ -21,57 +21,57 @@ code, pre {
 
 @layer base {
     :root {
-        --background: 37 10% 88%;
-        --foreground: 30 16% 25%;
+        --background: 210 30% 97%;
+        --foreground: 210 70% 26%;
         --card: 0 0% 100%;
-        --card-foreground: 30 16% 25%;
+        --card-foreground: 210 70% 26%;
         --popover: 0 0% 100%;
-        --popover-foreground: 30 16% 25%;
-        --primary: 243 75% 59%;
+        --popover-foreground: 210 70% 26%;
+        --primary: 210 71% 42%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 199 83% 48%;
+        --secondary: 210 65% 62%;
         --secondary-foreground: 0 0% 100%;
-        --muted: 42 62% 86%;
-        --muted-foreground: 35 13% 47%;
-        --accent: 233 50% 96%;
-        --accent-foreground: 30 16% 25%;
+        --muted: 210 40% 94%;
+        --muted-foreground: 210 20% 45%;
+        --accent: 210 100% 96%;
+        --accent-foreground: 210 70% 26%;
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 45 62% 76%;
-        --input: 45 62% 76%;
-        --ring: 243 75% 59%;
-        --accent-text: 17 88% 40%;
-        --chart-1: 243 75% 59%;
-        --chart-2: 199 83% 48%;
+        --border: 210 40% 85%;
+        --input: 210 40% 85%;
+        --ring: 210 71% 42%;
+        --accent-text: 38 92% 50%;
+        --chart-1: 210 71% 42%;
+        --chart-2: 200 100% 61%;
         --chart-3: 160 55% 39%;
         --chart-4: 38 92% 50%;
         --chart-5: 0 84% 60%;
-        --radius: 0.75rem;
+        --radius: 1.5rem;
     }
 
     .dark {
-        --background: 0 0% 9%;
-        --foreground: 40 32% 93%;
-        --card: 0 0% 14%;
-        --card-foreground: 40 32% 93%;
-        --popover: 0 0% 14%;
-        --popover-foreground: 40 32% 93%;
-        --primary: 239 84% 67%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 198 93% 60%;
+        --background: 210 25% 11%;
+        --foreground: 210 40% 95%;
+        --card: 210 22% 16%;
+        --card-foreground: 210 40% 95%;
+        --popover: 210 22% 16%;
+        --popover-foreground: 210 40% 95%;
+        --primary: 200 100% 61%;
+        --primary-foreground: 210 83% 15%;
+        --secondary: 210 65% 62%;
         --secondary-foreground: 0 0% 10%;
-        --muted: 0 0% 17%;
-        --muted-foreground: 33 8% 58%;
-        --accent: 228 5% 19%;
-        --accent-foreground: 40 32% 93%;
+        --muted: 210 20% 20%;
+        --muted-foreground: 210 15% 70%;
+        --accent: 210 20% 22%;
+        --accent-foreground: 210 40% 95%;
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 23%;
-        --input: 0 0% 23%;
-        --ring: 239 84% 67%;
-        --accent-text: 25 95% 53%;
-        --chart-1: 239 84% 67%;
-        --chart-2: 198 93% 60%;
+        --border: 210 20% 30%;
+        --input: 210 20% 30%;
+        --ring: 200 100% 61%;
+        --accent-text: 38 92% 50%;
+        --chart-1: 200 100% 61%;
+        --chart-2: 210 65% 62%;
         --chart-3: 158 64% 52%;
         --chart-4: 43 96% 56%;
         --chart-5: 351 95% 71%;
@@ -389,6 +389,13 @@ code, pre {
     animation: pulse-ring-ai 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* AI pulsing ring for status indicators */
+@keyframes aiRing {
+    0% { transform: scale(1); opacity: 0.7; }
+    70% { transform: scale(2.4); opacity: 0; }
+    100% { transform: scale(2.4); opacity: 0; }
+}
+
 /* ==============================
    Playful EdTech Elements
    (Duolingo / LexieLingua style)
@@ -525,3 +532,131 @@ code, pre {
     animation: mascot-bob 3.5s ease-in-out infinite;
 }
 
+/* ==============================
+   Premium EdTech Landing (CampusAI)
+   Apple + Linear + Duolingo design language
+   ============================== */
+
+/* Brand gradient text */
+.brand-gradient-text {
+    background: linear-gradient(90deg, #0A6BFF 0%, #39C1FF 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Hero mesh/grid background overlay */
+.premium-grid {
+    background-image:
+        linear-gradient(to right, rgba(31, 109, 184, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(31, 109, 184, 0.06) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
+}
+
+/* Aurora / gradient blob */
+.aurora-blob {
+    filter: blur(70px);
+    border-radius: 9999px;
+}
+
+/* Soft glass card */
+.glass-card {
+    background-color: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 20px 50px -20px rgba(14, 78, 147, 0.18);
+}
+.dark .glass-card {
+    background-color: rgba(24, 24, 27, 0.72);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* Floating pill navbar */
+.premium-nav {
+    background-color: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 12px 40px -12px rgba(14, 78, 147, 0.18);
+}
+.dark .premium-nav {
+    background-color: rgba(24, 24, 27, 0.72);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Marquee animation for logos/ticker */
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+    animation: marquee 30s linear infinite;
+}
+
+/* Slow spin for decorative ring */
+@keyframes spin-slow {
+    to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+    animation: spin-slow 24s linear infinite;
+}
+
+/* Counter shimmer */
+@keyframes count-shimmer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+}
+.animate-count-shimmer {
+    animation: count-shimmer 2.5s ease-in-out infinite;
+}
+
+/* Gradient border cards (bento) */
+.bento-gradient-border {
+    position: relative;
+    background-clip: padding-box;
+}
+.bento-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(10, 107, 255, 0.5), rgba(57, 193, 255, 0.15), rgba(245, 158, 11, 0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Scroll-trigger helpers (with framer fallback) */
+.reveal-clip {
+    overflow: hidden;
+}
+
+/* ==============================
+   Skeleton Loading Shimmer
+   ============================== */
+@keyframes skeleton-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(226, 232, 240, 0.4) 25%,
+        rgba(226, 232, 240, 0.85) 37%,
+        rgba(226, 232, 240, 0.4) 63%
+    );
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+/* Smooth anchor scrolling */
+html {
+    scroll-behavior: smooth;
+}

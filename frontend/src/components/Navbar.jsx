@@ -24,6 +24,7 @@ import {
   LayoutDashboard,
   Users,
   Menu,
+  Bell,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { CampusAiLogo } from './CampusAiLogo';
@@ -57,10 +58,13 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center gap-2 group" data-testid="nav-logo">
-            <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+            <div className="p-2 rounded-2xl bg-brand-primary/10 group-hover:bg-brand-primary/20 group-hover:-translate-y-0.5 transition-all">
               <CampusAiLogo className="h-6 w-6" />
             </div>
-            <AnimatedTitle text="CampusAi" variant="shimmer" className="font-bold text-lg tracking-tight hidden sm:block" />
+            <div className="flex flex-col text-left leading-none hidden sm:block">
+              <span className="font-extrabold text-gray-900 dark:text-white text-base tracking-tight uppercase">CampusAI</span>
+              <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">INTELLIGENCE</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation (only when signed in) */}
@@ -101,6 +105,22 @@ export function Navbar() {
               )}
             </Button>
 
+            {/* AI Online Indicator */}
+            {user && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                AI Online
+              </span>
+            )}
+
+            {/* Notifications */}
+            {user && (
+              <Button variant="ghost" size="icon" className="rounded-full relative text-muted-foreground hover:text-foreground">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full" />
+              </Button>
+            )}
+
             {user ? (
               <>
                 {/* Local user avatar + dropdown */}
@@ -126,6 +146,14 @@ export function Navbar() {
                     <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/certificates')}>
+                      <Award className="mr-2 h-4 w-4" />
+                      My Certificates
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={async () => { await logout(); navigate('/'); }}>

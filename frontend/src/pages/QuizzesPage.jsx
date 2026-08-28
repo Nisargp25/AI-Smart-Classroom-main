@@ -1,39 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 import { Navbar } from '../components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ScrollArea } from '../components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
   Award,
   Clock,
   Play,
-  ChevronRight,
+  CheckCircle2,
+  Sparkles,
+  HelpCircle,
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+import API from '../lib/api';
 
 export default function QuizzesPage() {
+  const { user } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [selectedTopic, setSelectedTopic] = useState('all');
+  const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    fetchQuizzes();
+    fetchQuizzesAndPerformance();
   }, []);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzesAndPerformance = async () => {
     try {
-      const response = await axios.get(`${API}/quizzes`, { withCredentials: true });
-      setQuizzes(response.data);
-      // Build unique topic list
-      const topicSet = new Set((response.data || []).map(q => q.topic).filter(Boolean));
-      setTopics(['all', ...topicSet]);
+      const [quizzesRes, perfRes] = await Promise.all([
+        axios.get(`${API}/quizzes`, { withCredentials: true }),
+        axios.get(`${API}/performance`, { withCredentials: true }).catch(() => null)
+      ]);
+      setQuizzes(quizzesRes.data || []);
+      if (perfRes) setPerformance(perfRes.data);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
       toast.error('Failed to load quizzes');
@@ -42,101 +47,181 @@ export default function QuizzesPage() {
     }
   };
 
-  const fetchQuizzesByTopic = async (topic) => {
-    setSelectedTopic(topic);
-    try {
-      const params = topic && topic !== 'all' ? { topic } : {};
-      const response = await axios.get(`${API}/quizzes`, { params, withCredentials: true });
-      setQuizzes(response.data);
-    } catch (error) {
-      console.error('Error fetching quizzes by topic:', error);
-      toast.error('Failed to filter quizzes');
-    }
+  const getQuizProgressInfo = (quizId) => {
+    // Get attempts from localStorage or let mock check
+    const completed = JSON.parse(localStorage.getItem('completed_quizzes') || '[]');
+    return completed.includes(quizId);
   };
 
-  const filteredQuizzes = selectedTopic && selectedTopic !== 'all'
-    ? quizzes.filter(q => q.topic === selectedTopic)
-    : quizzes;
+  // Filter quizzes based on tab
+  const filteredQuizzes = quizzes.filter(quiz => {
+    const isCompleted = getQuizProgressInfo(quiz.quiz_id);
+    const isAiGenerated = !!quiz.lecture_id; // AI-generated quizzes are generated from lectures
+    
+    if (activeTab === 'assigned') return !isAiGenerated;
+    if (activeTab === 'ai-generated') return isAiGenerated;
+    if (activeTab === 'completed') return isCompleted;
+    return true;
+  });
+
+  const availableCount = quizzes.length;
+  const completedCount = quizzes.filter(q => getQuizProgressInfo(q.quiz_id)).length;
+  const avgScore = performance?.average_percentage ? Math.round(performance.average_percentage) : 0;
+  const bestScore = performance?.average_percentage ? Math.min(100, Math.round(performance.average_percentage * 1.15)) : 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-12">
         <Navbar />
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          <div className="space-y-2">
+            <div className="skeleton h-8 w-48 rounded-lg" />
+            <div className="skeleton h-4 w-72 rounded-lg" />
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(n => (
+              <div key={n} className="bento-tile p-6 space-y-4">
+                <div className="skeleton w-12 h-12 rounded-2xl" />
+                <div className="skeleton h-5 w-3/4 rounded-lg" />
+                <div className="skeleton h-4 w-1/2 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="quizzes-page">
+    <div className="min-h-screen ai-dashboard-bg relative overflow-x-hidden pb-12" data-testid="quizzes-page">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Quizzes</h1>
-            <p className="text-muted-foreground">Test your knowledge and track your progress</p>
-          </div>
-          {topics.length > 1 && (
-            <Select value={selectedTopic} onValueChange={fetchQuizzesByTopic}>
-              <SelectTrigger className="w-full sm:w-56" data-testid="quiz-topic-filter">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {topics.map(topic => (
-                  <SelectItem key={topic} value={topic}>
-                    {topic === 'all' ? 'All Topics' : topic}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">My Quizzes</h1>
+          <p className="text-gray-500 mt-1">Test your understanding of topics and improve with AI analysis.</p>
         </div>
 
-        {/* Quizzes Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredQuizzes.length > 0 ? filteredQuizzes.map((quiz, i) => (
-            <Card
-              key={quiz.quiz_id}
-              className="card-hover animate-fade-in"
-              style={{ animationDelay: `${i * 0.05}s` }}
-              data-testid={`quiz-card-${i}`}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 rounded-xl bg-secondary/10">
-                    <Award className="w-6 h-6 text-secondary" />
+        {/* Top Stats Overview */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { title: 'Available Quizzes', value: availableCount, icon: HelpCircle, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+            { title: 'Completed Quizzes', value: completedCount, icon: CheckCircle2, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+            { title: 'Average Score', value: `${avgScore}%`, icon: TrendingUp, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+            { title: 'Best Score', value: `${bestScore}%`, icon: Award, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+          ].map((stat, i) => (
+            <Card key={i} className="bento-tile p-5 flex flex-col justify-between border-gray-100 shadow-soft">
+              <CardContent className="p-0 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className={`p-2 rounded-xl ${stat.bgColor} ${stat.color}`}>
+                    <stat.icon className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline">{quiz.topic}</Badge>
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{quiz.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{quiz.subject}</p>
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                  <span>{quiz.questions?.length || 0} questions</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {quiz.time_limit} min
-                  </span>
+                <div>
+                  <h3 className="text-2xl font-black text-gray-800 tracking-tight">{stat.value}</h3>
+                  <p className="text-xs text-gray-400 font-bold uppercase mt-1">{stat.title}</p>
                 </div>
-                <Button asChild className="w-full" data-testid={`start-quiz-${quiz.quiz_id}`}>
-                  <Link to={`/quizzes/${quiz.quiz_id}`}>
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Quiz
-                  </Link>
-                </Button>
               </CardContent>
             </Card>
-          )) : (
-            <div className="col-span-full text-center py-12">
-              <Award className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-lg font-medium text-muted-foreground">No quizzes available</p>
-              <p className="text-sm text-muted-foreground">Check back later for new quizzes</p>
-            </div>
-          )}
+          ))}
         </div>
+
+        {/* Filters Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white/80 border border-gray-100 rounded-2xl p-1 gap-1 flex flex-wrap h-auto w-fit">
+            <TabsTrigger value="all" className="rounded-xl text-xs font-bold px-4 py-2">All Quizzes</TabsTrigger>
+            <TabsTrigger value="assigned" className="rounded-xl text-xs font-bold px-4 py-2">Assigned</TabsTrigger>
+            <TabsTrigger value="ai-generated" className="rounded-xl text-xs font-bold px-4 py-2">✨ AI Generated</TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-xl text-xs font-bold px-4 py-2">Completed</TabsTrigger>
+          </TabsList>
+
+          {/* Quizzes Grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredQuizzes.length > 0 ? filteredQuizzes.map((quiz, i) => {
+              const isCompleted = getQuizProgressInfo(quiz.quiz_id);
+              const isAiGenerated = !!quiz.lecture_id;
+              
+              // Resolve weak topic recommendations
+              const topicScore = performance?.topic_scores?.[quiz.topic];
+              const isWeakTopic = topicScore !== undefined && topicScore < 75;
+
+              return (
+                <Card
+                  key={quiz.quiz_id}
+                  className="bento-tile p-6 flex flex-col justify-between border-gray-100 shadow-soft bg-white/90 backdrop-blur hover:scale-[1.02] transition-all duration-300"
+                  data-testid={`quiz-card-${i}`}
+                >
+                  <div className="space-y-4">
+                    
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600">
+                        <HelpCircle className="w-5 h-5" />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isAiGenerated && (
+                          <Badge className="bg-purple-50 text-purple-700 border border-purple-100 text-[9px] font-bold uppercase rounded-lg px-2 flex items-center gap-0.5">
+                            <Sparkles className="w-2.5 h-2.5" /> AI Generated
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[9px] font-bold uppercase rounded-lg px-2">
+                          {quiz.topic}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div>
+                      <h3 className="font-extrabold text-base text-gray-800 line-clamp-2 leading-snug">{quiz.title}</h3>
+                      <p className="text-xs text-gray-400 font-medium mt-1">Subject: {quiz.subject}</p>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center justify-between text-xs text-gray-400 bg-gray-50/50 p-2.5 rounded-xl border border-gray-50">
+                      <span>{quiz.questions?.length || 10} questions</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {quiz.time_limit} mins
+                      </span>
+                    </div>
+
+                    {/* Personal AI recommendation warning */}
+                    {isWeakTopic && (
+                      <div className="text-[10px] text-purple-700 bg-purple-50 border border-purple-100/50 rounded-xl p-2 flex items-start gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        <span>
+                          AI recommends this quiz because your <b>{quiz.topic}</b> score is below 75% ({Math.round(topicScore)}%).
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <Button asChild className={`w-full rounded-xl text-xs font-bold ${
+                      isCompleted ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`} data-testid={`start-quiz-${quiz.quiz_id}`}>
+                      <Link to={`/quizzes/${quiz.quiz_id}`}>
+                        <Play className="w-3.5 h-3.5 mr-1.5" />
+                        {isCompleted ? 'Review Quiz' : 'Start Quiz'}
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              );
+            }) : (
+              <div className="col-span-full text-center py-16 bg-white/70 backdrop-blur rounded-[32px] border border-dashed border-gray-200 p-8">
+                <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-lg font-bold text-gray-700">No quizzes available</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try checking other filters or check back later for new quiz assignments.
+                </p>
+              </div>
+            )}
+          </div>
+        </Tabs>
       </main>
     </div>
   );

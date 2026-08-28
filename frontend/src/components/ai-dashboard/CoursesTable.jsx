@@ -4,10 +4,10 @@ import { BookOpen, MoreHorizontal, TrendingUp, Sparkles } from 'lucide-react';
 import AIProgressBar from './AIProgressBar';
 
 const COURSES = [
-  { code: 'MATH101', name: 'Linear Algebra', progress: 92, color: 'bg-indigo-500', grade: 'A', students: 128 },
-  { code: 'CS201', name: 'Data Structures', progress: 78, color: 'bg-purple-500', grade: 'A-', students: 96 },
-  { code: 'PHYS150', name: 'Physics I', progress: 64, color: 'bg-emerald-500', grade: 'B+', students: 142 },
-  { code: 'ENG204', name: 'Academic Writing', progress: 85, color: 'bg-pink-500', grade: 'A', students: 74 },
+  { code: 'MATH101', name: 'Linear Algebra', progress: 92, color: 'bg-brand-primary', grade: 'A', students: 128 },
+  { code: 'CS201', name: 'Data Structures', progress: 78, color: 'bg-brand-accent-cyan', grade: 'A-', students: 96 },
+  { code: 'PHYS150', name: 'Physics I', progress: 64, color: 'bg-brand-accent-light', grade: 'B+', students: 142 },
+  { code: 'ENG204', name: 'Academic Writing', progress: 85, color: 'bg-brand-primary-dark', grade: 'A', students: 74 },
 ];
 
 export default function CoursesTable() {
@@ -21,7 +21,7 @@ className="relative ai-card p-6 sm:p-7 pastel-card-mint"
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+<div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-accent-cyan flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
@@ -29,9 +29,9 @@ className="relative ai-card p-6 sm:p-7 pastel-card-mint"
             <p className="text-sm text-gray-500">Track progress across all enrolled courses</p>
           </div>
           {/* Decorative twinkle illustration */}
-          <Sparkles className="w-5 h-5 text-amber-400 animate-twinkle ml-1" />
+          <Sparkles className="w-5 h-5 text-brand-accent-warm animate-twinkle ml-1" />
         </div>
-        <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-full transition-colors">
+        <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-primary-dark bg-brand-soft hover:bg-brand-accent-light/30 px-4 py-2 rounded-full transition-colors">
           <TrendingUp className="w-4 h-4" />
           View all courses
         </button>
@@ -57,7 +57,7 @@ className="relative ai-card p-6 sm:p-7 pastel-card-mint"
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.55 + i * 0.08 }}
                 whileHover={{ scale: 1.01 }}
-                className="bg-gray-50/70 hover:bg-indigo-50/50 rounded-2xl transition-colors"
+                className="bg-gray-50/70 hover:bg-brand-soft/60 rounded-2xl transition-colors"
               >
                 <td className="px-4 py-3.5 rounded-l-2xl">
                   <div className="flex items-center gap-3">

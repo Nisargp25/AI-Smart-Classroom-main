@@ -30,7 +30,7 @@ AI_IMPORT_ERROR = None
 try:
     from ai_service import (
         transcribe_audio, clean_transcript, generate_lecture_summary,
-        generate_quiz_questions, get_coding_recommendations, get_mock_summary,
+        generate_quiz_questions, generate_chat_response, get_coding_recommendations, get_mock_summary,
         get_mock_questions
     )
 except Exception as import_error:
@@ -46,6 +46,9 @@ except Exception as import_error:
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
 
     async def generate_quiz_questions(*args, **kwargs):
+        raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
+
+    async def generate_chat_response(*args, **kwargs):
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
 
     async def get_coding_recommendations(*args, **kwargs):
@@ -251,6 +254,8 @@ async def register_with_email(request: Request, response: Response):
     password = data.get("password") or ""
     name = (data.get("name") or "").strip()
     role = (data.get("role") or "student").strip().lower()
+    class_name = (data.get("class_name") or "").strip() or None
+    division = (data.get("division") or "").strip() or None
 
     if role not in ("student", "teacher"):
         role = "student"
@@ -271,6 +276,8 @@ async def register_with_email(request: Request, response: Response):
         "name": name or email.split("@")[0],
         "picture": None,
         "role": role,
+        "class_name": class_name,
+        "division": division,
         "password_hash": hash_password(password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -283,6 +290,34 @@ async def register_with_email(request: Request, response: Response):
     user.pop("_id", None)
     user.pop("password_hash", None)
     return {"user": user, "token": token}
+
+
+@api_router.put("/auth/profile")
+async def update_profile(request: Request):
+    """Update the current user's profile (name, class_name, division)."""
+    current_user = await get_current_user(request, db)
+    data = await request.json()
+
+    allowed_fields = {}
+    if "name" in data and data["name"]:
+        allowed_fields["name"] = data["name"].strip()
+    if "class_name" in data:
+        allowed_fields["class_name"] = (data["class_name"] or "").strip() or None
+    if "division" in data:
+        allowed_fields["division"] = (data["division"] or "").strip() or None
+
+    if not allowed_fields:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+
+    await db.users.update_one(
+        {"user_id": current_user["user_id"]},
+        {"$set": allowed_fields}
+    )
+    updated = await db.users.find_one(
+        {"user_id": current_user["user_id"]},
+        {"_id": 0, "password_hash": 0}
+    )
+    return updated
 
 
 @api_router.post("/auth/login")
@@ -342,6 +377,22 @@ async def update_user_role(request: Request):
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return user
 
+# ==================== AI CHAT ROUTES ====================
+
+@api_router.post("/chat")
+async def chat(request: Request):
+    """Generate a classroom chat response using the configured Groq model."""
+    await get_current_user(request, db)
+    data = await request.json()
+    message = str(data.get("message", "")).strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    response = await generate_chat_response(message)
+    if not response:
+        raise HTTPException(status_code=503, detail="Sorry, I couldn't generate a response right now. Please try again.")
+    return {"response": response}
+
 # ==================== LECTURE ROUTES ====================
 
 @api_router.post("/lectures")
@@ -354,6 +405,18 @@ async def create_lecture(request: Request):
     
     data = await request.json()
     
+    # class_name and division: prefer from payload, fall back to teacher's profile
+    class_name = (
+        (data.get("class_name") or "").strip()
+        or current_user.get("class_name")
+        or None
+    )
+    division = (
+        (data.get("division") or "").strip()
+        or current_user.get("division")
+        or None
+    )
+
     lecture = {
         "lecture_id": generate_id("lec_"),
         "title": data["title"],
@@ -362,6 +425,8 @@ async def create_lecture(request: Request):
         "teacher_id": current_user["user_id"],
         "teacher_name": current_user["name"],
         "batch": data.get("batch", "All"),
+        "class_name": class_name,
+        "division": division,
         "audio_path": None,
         "duration": 0,
         "raw_transcript": None,
@@ -498,25 +563,96 @@ async def regenerate_lecture_summary(lecture_id: str, request: Request):
 
 @api_router.get("/lectures")
 async def get_lectures(request: Request, subject: Optional[str] = None, limit: int = 20):
-    """Get all lectures"""
-    await get_current_user(request, db)
-    
+    """Get all lectures, scoped by role."""
+    current_user = await get_current_user(request, db)
+    role = current_user.get("role", "student")
+
     query = {}
     if subject:
         query["subject"] = subject
-    
+
+    if role == "teacher":
+        # Teachers see ONLY the lectures they personally created.
+        teacher_filter = {"teacher_id": current_user["user_id"]}
+        if query:
+            query = {"$and": [query, teacher_filter]}
+        else:
+            query = teacher_filter
+
+    elif role == "student":
+        # Students see lectures assigned to their class/division, or lectures
+        # that have no class/division restriction (i.e. "All").
+        class_name = current_user.get("class_name")
+        division = current_user.get("division")
+
+        # Lectures with no class restriction are always visible.
+        or_conditions = [
+            {"class_name": {"$exists": False}},
+            {"class_name": None},
+            {"class_name": "All"},
+        ]
+        if class_name:
+            div_conditions = [
+                {"division": {"$exists": False}},
+                {"division": None},
+                {"division": "All"},
+            ]
+            if division:
+                div_conditions.append({"division": division})
+
+            or_conditions.append(
+                {"class_name": class_name, "$or": div_conditions}
+            )
+
+        class_filter = {"$or": or_conditions}
+        if query:
+            query = {"$and": [query, class_filter]}
+        else:
+            query = class_filter
+
+    # Admins: no additional filter — they see everything.
+
     lectures = await db.lectures.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
     return lectures
 
 @api_router.get("/lectures/{lecture_id}")
 async def get_lecture(lecture_id: str, request: Request):
-    """Get a specific lecture"""
-    await get_current_user(request, db)
-    
+    """Get a specific lecture with role-based access control."""
+    current_user = await get_current_user(request, db)
+    role = current_user.get("role", "student")
+
     lecture = await db.lectures.find_one({"lecture_id": lecture_id}, {"_id": 0})
     if not lecture:
         raise HTTPException(status_code=404, detail="Lecture not found")
-    
+
+    if role == "teacher":
+        # Teachers can only access lectures they personally own.
+        if lecture.get("teacher_id") != current_user["user_id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You do not own this lecture."
+            )
+
+    elif role == "student":
+        lec_class = lecture.get("class_name")
+        lec_div = lecture.get("division")
+        user_class = current_user.get("class_name")
+        user_div = current_user.get("division")
+
+        if lec_class and lec_class not in (None, "All"):
+            if not user_class or lec_class != user_class:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: This lecture is assigned to a different class."
+                )
+            if lec_div and lec_div not in (None, "All"):
+                if not user_div or lec_div != user_div:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied: This lecture is assigned to a different division."
+                    )
+
+    # Admins can access any lecture.
     return lecture
 
 # ==================== QUIZ ROUTES ====================
@@ -1035,18 +1171,47 @@ async def seed_demo_data(request: Request):
     """Seed demo data for testing/expo"""
     # Create demo users
     demo_users = [
-        {"user_id": "demo_student_1", "email": "student1@demo.com", "name": "Alex Johnson", "role": "student", "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=alex"},
-        {"user_id": "demo_student_2", "email": "student2@demo.com", "name": "Sarah Williams", "role": "student", "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah"},
-        {"user_id": "demo_student_3", "email": "student3@demo.com", "name": "Mike Chen", "role": "student", "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=mike"},
-        {"user_id": "demo_teacher_1", "email": "teacher@demo.com", "name": "Dr. Emily Parker", "role": "teacher", "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=emily"},
+        # Students
+        {
+            "user_id": "demo_student_1", "email": "student1@demo.com",
+            "name": "Alex Johnson", "role": "student",
+            "class_name": "B.Tech IT", "division": "A",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=alex"
+        },
+        {
+            "user_id": "demo_student_2", "email": "student2@demo.com",
+            "name": "Sarah Williams", "role": "student",
+            "class_name": "B.Tech IT", "division": "B",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=sarah"
+        },
+        {
+            "user_id": "demo_student_3", "email": "student3@demo.com",
+            "name": "Mike Chen", "role": "student",
+            "class_name": "B.Tech IT", "division": "A",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=mike"
+        },
+        # Teachers — each owns a separate division
+        {
+            "user_id": "demo_teacher_1", "email": "teacher@demo.com",
+            "name": "Dr. Emily Parker", "role": "teacher",
+            "class_name": "B.Tech IT", "division": "A",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=emily"
+        },
+        {
+            "user_id": "demo_teacher_2", "email": "teacher2@demo.com",
+            "name": "Prof. Raj Mehta", "role": "teacher",
+            "class_name": "B.Tech IT", "division": "B",
+            "picture": "https://api.dicebear.com/7.x/avataaars/svg?seed=raj"
+        },
     ]
     
     for user in demo_users:
         user["created_at"] = datetime.now(timezone.utc).isoformat()
         await db.users.update_one({"user_id": user["user_id"]}, {"$set": user}, upsert=True)
     
-    # Create demo lectures
+    # Create demo lectures — scoped by teacher_id + class_name + division
     demo_lectures = [
+        # Teacher A (Emily Parker) → B.Tech IT / Division A
         {
             "lecture_id": "demo_lec_1",
             "title": "Introduction to Data Structures",
@@ -1055,6 +1220,8 @@ async def seed_demo_data(request: Request):
             "teacher_id": "demo_teacher_1",
             "teacher_name": "Dr. Emily Parker",
             "batch": "CS-2025",
+            "class_name": "B.Tech IT",
+            "division": "A",
             "status": "completed",
             "raw_transcript": "Today we cover the fundamentals of data structures...",
             "clean_transcript": "Today we cover the fundamentals of data structures and algorithms, focusing on arrays and linked lists.",
@@ -1069,6 +1236,8 @@ async def seed_demo_data(request: Request):
             "teacher_id": "demo_teacher_1",
             "teacher_name": "Dr. Emily Parker",
             "batch": "CS-2025",
+            "class_name": "B.Tech IT",
+            "division": "A",
             "status": "completed",
             "raw_transcript": "Object oriented programming is a paradigm...",
             "clean_transcript": "Object oriented programming is a paradigm based on objects containing data and code.",
@@ -1081,7 +1250,40 @@ async def seed_demo_data(request: Request):
                 "revision_checklist": ["Review SOLID principles"]
             },
             "created_at": datetime.now(timezone.utc).isoformat()
-        }
+        },
+        # Teacher B (Raj Mehta) → B.Tech IT / Division B
+        {
+            "lecture_id": "demo_lec_3",
+            "title": "Database Management Systems",
+            "subject": "Database",
+            "topic": "SQL Fundamentals",
+            "teacher_id": "demo_teacher_2",
+            "teacher_name": "Prof. Raj Mehta",
+            "batch": "CS-2025",
+            "class_name": "B.Tech IT",
+            "division": "B",
+            "status": "completed",
+            "raw_transcript": "Today we cover SQL and relational databases...",
+            "clean_transcript": "SQL is a standard language for relational database management. We cover SELECT, INSERT, UPDATE, DELETE.",
+            "summary": get_mock_summary(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "lecture_id": "demo_lec_4",
+            "title": "Computer Networks",
+            "subject": "Networking",
+            "topic": "OSI Model",
+            "teacher_id": "demo_teacher_2",
+            "teacher_name": "Prof. Raj Mehta",
+            "batch": "CS-2025",
+            "class_name": "B.Tech IT",
+            "division": "B",
+            "status": "completed",
+            "raw_transcript": "The OSI model has 7 layers...",
+            "clean_transcript": "The OSI model defines 7 layers: Physical, Data Link, Network, Transport, Session, Presentation, Application.",
+            "summary": get_mock_summary(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
     ]
     
     for lecture in demo_lectures:
@@ -1144,10 +1346,18 @@ cors_origins = [o.strip() for o in os.environ.get(
     "CORS_ORIGINS",
     "http://127.0.0.1:4000,http://localhost:4000,http://127.0.0.1:3000,http://localhost:3000"
 ).split(",") if o.strip()]
+for local_origin in (
+    "http://127.0.0.1:4000",
+    "http://localhost:4000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+):
+    if local_origin not in cors_origins:
+        cors_origins.append(local_origin)
 
 cors_origin_regex = os.environ.get(
     "CORS_ORIGIN_REGEX",
-    r"https?://([a-zA-Z0-9-]+\.)*(devtunnels\.ms|ngrok-free\.app|ngrok\.io|loca\.lt|trycloudflare\.com)(:\d+)?$"
+    r"https?://(?:localhost|127\.0\.0\.1)(:\d+)?$|https?://([a-zA-Z0-9-]+\.)*(devtunnels\.ms|ngrok-free\.app|ngrok\.io|loca\.lt|trycloudflare\.com)(:\d+)?$"
 )
 
 # Browsers block credentialed CORS when allow_origins is wildcard.

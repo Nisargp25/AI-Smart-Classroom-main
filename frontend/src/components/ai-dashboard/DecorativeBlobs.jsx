@@ -7,11 +7,11 @@ import { motion } from 'framer-motion';
  * and gently drift to add visual depth without being distracting.
  */
 export default function DecorativeBlobs() {
-  const blobs = [
-    { color: 'from-pink-200/70 to-rose-200/50', pos: 'top-[-40px] right-[10%]', size: 'w-72 h-72', delay: '0s' },
-    { color: 'from-indigo-200/70 to-blue-200/50', pos: 'bottom-[10%] left-[-60px]', size: 'w-80 h-80', delay: '-4s' },
-    { color: 'from-emerald-200/60 to-teal-200/40', pos: 'top-[40%] left-[30%]', size: 'w-56 h-56', delay: '-8s' },
-    { color: 'from-amber-200/60 to-yellow-200/40', pos: 'bottom-[-30px] right-[30%]', size: 'w-64 h-64', delay: '-6s' },
+const blobs = [
+    { color: 'from-brand-accent-light/50 to-brand-accent-cyan/40', pos: 'top-[-40px] right-[10%]', size: 'w-72 h-72', delay: '0s' },
+    { color: 'from-brand-primary/40 to-brand-accent-light/40', pos: 'bottom-[10%] left-[-60px]', size: 'w-80 h-80', delay: '-4s' },
+    { color: 'from-brand-accent-cyan/40 to-brand-primary/30', pos: 'top-[40%] left-[30%]', size: 'w-56 h-56', delay: '-8s' },
+    { color: 'from-brand-accent-warm/40 to-brand-accent-light/30', pos: 'bottom-[-30px] right-[30%]', size: 'w-64 h-64', delay: '-6s' },
   ];
 
   return (

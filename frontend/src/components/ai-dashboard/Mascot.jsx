@@ -69,11 +69,11 @@ export default function Mascot({ size = 120, className = '' }) {
       {/* Little graduation cap */}
       <div className="absolute top-[6%] left-1/2 -translate-x-1/2">
         <div
-          className="bg-indigo-600 rounded-t-md"
+          className="bg-brand-primary rounded-t-md"
           style={{ width: size * 0.34, height: size * 0.1 }}
         />
         <div
-          className="bg-indigo-500 mx-auto"
+          className="bg-brand-accent-cyan mx-auto"
           style={{ width: size * 0.2, height: size * 0.06, borderRadius: 4 }}
         />
       </div>
