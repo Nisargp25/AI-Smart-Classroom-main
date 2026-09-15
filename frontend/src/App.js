@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AIDashboard from "./pages/AIDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherAnalytics from "./pages/TeacherAnalytics";
 import AdminDashboard from "./pages/AdminDashboard";
 import LecturesPage from "./pages/LecturesPage";
 import LectureView from "./pages/LectureView";
@@ -83,6 +84,14 @@ function AppRouter() {
         element={
           <ProtectedRoute>
             <AIDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/analytics"
+        element={
+          <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <TeacherAnalytics />
           </ProtectedRoute>
         }
       />

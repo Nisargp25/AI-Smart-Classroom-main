@@ -112,7 +112,7 @@ export default function Dashboard() {
     try {
       const response = await axios.post(
         `${API}/certificates/generate`,
-        { course_name: 'CampusAi Capstone Program' },
+        { course_name: 'CampusAI Professional Learning Certificate' },
         { withCredentials: true }
       );
       setCertificates(prev => [response.data, ...prev]);
@@ -172,7 +172,7 @@ export default function Dashboard() {
 
     ctx.beginPath(); ctx.moveTo(305, 430); ctx.lineTo(895, 430); ctx.strokeStyle = '#b59c72'; ctx.lineWidth = 3; ctx.stroke();
 
-    ctx.fillStyle = '#23453f'; ctx.font = '34px Arial'; ctx.fillText(`For outstanding work in ${cert.course_name || 'CampusAi Capstone Program'}`, centerX, 492);
+    ctx.fillStyle = '#23453f'; ctx.font = '34px Arial'; ctx.fillText(`For outstanding work in ${cert.course_name || 'CampusAI Professional Learning Certificate'}`, centerX, 492);
     ctx.font = '30px Arial'; ctx.fillText(`Academic ${Math.round(cert.academic_score || 0)}%   |   Coding ${Math.round(cert.coding_score || 0)}   |   Rank #${cert.overall_rank || '-'}`, centerX, 538);
     const issuedOn = new Date(cert.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     ctx.font = '26px Arial'; ctx.fillText(`Issued on ${issuedOn}`, centerX, 580);
@@ -402,7 +402,7 @@ export default function Dashboard() {
               </div>
               
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-                {getGreeting()}, {user?.name?.split(' ')[0]} 👋
+                {getGreeting()}, {user?.name?.split(' ')[0]}
               </h1>
               
               <p className="text-gray-600 max-w-xl text-base leading-relaxed">
@@ -648,7 +648,7 @@ export default function Dashboard() {
                   <div className="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100/50 space-y-3">
                     <h5 className="font-bold text-xs text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
                       <Activity className="w-3.5 h-3.5 text-indigo-600" />
-                      Map Intelligence Status
+                      Map Status
                     </h5>
                     <p className="text-xs text-gray-600 leading-relaxed">
                       AI maps your quiz performance to estimate conceptual confidence. To update this map:
@@ -695,12 +695,12 @@ export default function Dashboard() {
           {/* RIGHT 1/3 SIDEBAR COLUMN */}
           <div className="space-y-8">
             
-            {/* ============ 4. CAMPUSAI LEARNING INTELLIGENCE ============ */}
+            {/* ============ 4. CAMPUSAI LEARNING INSIGHTS ============ */}
             <Card className="bento-tile p-6 border-gray-100 shadow-soft">
               <CardHeader className="p-0 mb-4">
                 <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Brain className="w-5 h-5 text-purple-600" />
-                  CampusAI Intelligence
+                  CampusAI Insights
                 </CardTitle>
                 <CardDescription className="text-xs text-gray-500">Personalized AI insights to maximize retention</CardDescription>
               </CardHeader>
@@ -853,7 +853,7 @@ export default function Dashboard() {
                     size="sm"
                     className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-7 text-[10px] font-bold"
                   >
-                    {generatingCert ? 'Generating...' : 'Claim Demo'}
+                    {generatingCert ? 'Generating...' : 'Generate Certificate'}
                   </Button>
                 )}
               </CardHeader>
@@ -909,7 +909,7 @@ export default function Dashboard() {
                     <Award className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-xs font-bold text-gray-500">No certificates issued yet</p>
                     <p className="text-[10px] text-gray-400 mt-1 max-w-[200px] mx-auto">
-                      Earn certificates by completing syllabus quizzes. Click "Claim Demo" to preview.
+                      Complete syllabus quizzes to earn a verified certificate.
                     </p>
                   </div>
                 )}

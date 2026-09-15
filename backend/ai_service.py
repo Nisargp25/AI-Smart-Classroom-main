@@ -16,16 +16,16 @@ LLM_API_KEY = os.environ.get("GROQ_API_KEY") or os.environ.get("LLM_API_KEY") or
 
 # Map friendly model names to Groq API model IDs
 GROQ_MODEL_MAP = {
-    "groq/llama-3.3-70b-versatile": "llama-3.3-70b-versatile",
-    "groq/llama-3.1-8b-instant": "llama-3.1-8b-instant",
-    "groq/mixtral-8x7b-32768": "mixtral-8x7b-32768",
-    "groq/gemma2-9b-it": "gemma2-9b-it",
+    "groq/llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+    "groq/llama-3.1-8b-instant": "openai/gpt-oss-20b",
+    "groq/mixtral-8x7b-32768": "openai/gpt-oss-20b",
+    "groq/gemma2-9b-it": "openai/gpt-oss-20b",
 }
-LLM_MODEL = os.getenv("LLM_MODEL", "groq/llama-3.3-70b-versatile")
-GROQ_MODEL = GROQ_MODEL_MAP.get(LLM_MODEL, "llama-3.3-70b-versatile")
+LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
+GROQ_MODEL = GROQ_MODEL_MAP.get(LLM_MODEL, LLM_MODEL)
 # Quiz generation uses a fast instant model so teachers get results quickly.
-LLM_QUIZ_MODEL = os.getenv("LLM_QUIZ_MODEL", "groq/llama-3.1-8b-instant")
-GROQ_QUIZ_MODEL = GROQ_MODEL_MAP.get(LLM_QUIZ_MODEL, "llama-3.1-8b-instant")
+LLM_QUIZ_MODEL = os.getenv("LLM_QUIZ_MODEL", "openai/gpt-oss-20b")
+GROQ_QUIZ_MODEL = GROQ_MODEL_MAP.get(LLM_QUIZ_MODEL, LLM_QUIZ_MODEL)
 GROQ_BASE = "https://api.groq.com/openai/v1"
 
 
@@ -106,6 +106,119 @@ async def generate_chat_response(message: str) -> str:
         "question clearly and at an appropriate level for a student."
     )
     return _call_llm(message.strip(), system_instruction, model="openai/gpt-oss-120b", max_tokens=1024)
+
+
+def _build_fallback_chat_response(message: str, role: str, context: Dict[str, Any]) -> str:
+    """Generate a deterministic classroom-aware response without external LLM calls."""
+    role_name = (role or "student").strip().lower() or "student"
+    clean_message = (message or "").strip()
+
+    if role_name == "teacher":
+        students = (context or {}).get("students") or []
+        class_average = float((context or {}).get("class_average") or 0)
+        weak_topics = (context or {}).get("weak_topics") or {}
+        support_count = (context or {}).get("students_needing_support") or 0
+        teacher_name = ((context or {}).get("teacher") or {}).get("name") or "teacher"
+
+        if not students and class_average == 0 and not weak_topics:
+            return "I don't have enough class data to analyze your section yet."
+
+        top_topic = next(iter(sorted(weak_topics.items(), key=lambda item: item[1])) , None)
+        top_topic_name = top_topic[0] if top_topic else None
+        top_topic_score = top_topic[1] if top_topic else None
+
+        response_bits = [
+            f"I analyzed your authorized class data for {teacher_name}.",
+            f"The class average is {class_average:.0f}%.",
+        ]
+        if top_topic_name and top_topic_score is not None:
+            response_bits.append(f"The weakest topic is {top_topic_name} at {top_topic_score:.0f}%.")
+        if support_count:
+            response_bits.append(f"{support_count} students are below 60% and may need support.")
+        else:
+            response_bits.append("Most students are in a stable range, so the class is generally trending well.")
+        response_bits.append("Recommendation: focus revision on the weakest topic and run a short targeted quiz or revision session.")
+        return " ".join(response_bits)
+
+    performance = (context or {}).get("performance") or {}
+    weak_topics = (context or {}).get("weak_topics") or {}
+    ranking = (context or {}).get("ranking") or {}
+    avg_score = float(performance.get("average_percentage", 0) or 0)
+    user_name = ((context or {}).get("user") or {}).get("name") or "student"
+
+    if not performance and not weak_topics and not ranking:
+        return "I don't have enough data to determine that yet."
+
+    top_topic = next(iter(sorted(weak_topics.items(), key=lambda item: item[1])), None)
+    top_topic_name = top_topic[0] if top_topic else None
+    top_topic_score = top_topic[1] if top_topic else None
+
+    # Check if the message is asking to explain a specific topic
+    explain_match = re.search(r'explain\s+(\w+(?:\s+\w+)?)', clean_message.lower())
+    if explain_match:
+        topic_to_explain = explain_match.group(1).strip()
+        response_bits = [
+            f"Regarding {topic_to_explain}: I analyzed your recent performance with {user_name}.",
+        ]
+        if top_topic_name and top_topic_name.lower() == topic_to_explain.lower():
+            response_bits.append(f"{topic_to_explain.title()} is your weakest topic at {top_topic_score:.0f}%.")
+            response_bits.append(f"This is an important area to focus on. Review the core concepts, solve practice problems, and take targeted quizzes to improve.")
+        else:
+            response_bits.append(f"Focus on understanding the fundamental concepts of {topic_to_explain}.")
+            response_bits.append("Practice problems and worked examples are key to mastering this topic.")
+        return " ".join(response_bits)
+
+    response_bits = [f"I analyzed your recent performance, {user_name}."]
+    if avg_score:
+        response_bits.append(f"Your current average is {avg_score:.0f}%.")
+    if top_topic_name and top_topic_score is not None:
+        response_bits.append(f"Your weakest topic is {top_topic_name} at {top_topic_score:.0f}%.")
+    else:
+        response_bits.append("Your topic scores are currently in a healthy range.")
+    if ranking.get("class_rank"):
+        response_bits.append(f"Your current rank is #{ranking.get('class_rank')}.")
+    response_bits.append("Recommendation: review the weakest topic, solve a few targeted practice questions, and take a short quiz to rebuild confidence.")
+    return " ".join(response_bits)
+
+
+async def chat_with_classroom_ai(message: str, role: str, intent: str, context: Dict[str, Any]) -> str:
+    """Generate a role-aware classroom assistant response using only the provided data."""
+    clean_message = (message or "").strip()
+    role_name = (role or "student").strip().lower() or "student"
+    if not clean_message:
+        return "I don't have a message to answer yet."
+
+    context_text = json.dumps(context or {}, ensure_ascii=False, default=str)
+    system_instruction = (
+        "You are an AI Classroom Assistant. "
+        f"User role: {role_name.upper()}. "
+        "Answer using only the classroom data provided. "
+        "Do not invent scores, students, rankings, attendance, quiz results, topics, or lecture information. "
+        "When current_lecture is present, answer lecture questions using only its transcript and ignore other lecture records. "
+        "If data is unavailable, clearly say: 'I don't have enough data to determine that yet.' "
+        "Use simple, clear language. For analytical questions: "
+        "1) explain what you found, 2) why it matters, 3) give a recommendation, 4) suggest the next action. "
+        "If the question is a general educational question that does not require classroom data, answer using general knowledge."
+    )
+    prompt = (
+        f"User role: {role_name.upper()}\n"
+        f"Intent: {intent}\n"
+        f"Question: {clean_message}\n\n"
+        "Context JSON:\n"
+        f"{context_text}\n\n"
+        "Instructions:\n"
+        "- Use the context JSON for classroom analysis.\n"
+        "- Never invent values.\n"
+        "- If the context is missing relevant information, say so plainly.\n"
+        "- Keep the answer short, personalized, and practical.\n"
+    )
+
+    text = _call_llm(prompt, system_instruction, model="openai/gpt-oss-120b", max_tokens=1024)
+    if text:
+        return text.strip()
+    if (context or {}).get("current_lecture"):
+        return "Lecture assistant is unavailable right now. Please try again."
+    return _build_fallback_chat_response(clean_message, role_name, context)
 
 
 def _parse_json(text: str):
@@ -222,121 +335,39 @@ async def clean_transcript(raw_transcript: str) -> str:
 
 async def generate_lecture_summary(transcript: str) -> Dict[str, Any]:
     """Generate structured summary from transcript using LLM."""
-    try:
-        system_instruction = """You are an educational content structurer. Return valid JSON only.
-Create both concise and deep notes from the transcript.
+    if not transcript or not transcript.strip():
+        raise RuntimeError("Cannot generate lecture analysis without a transcript")
 
-Required JSON structure (exact keys):
+    try:
+        system_instruction = """You are an educational lecture analysis assistant. Analyze ONLY the lecture transcript provided by the user and return valid JSON only.
+
+Generate the following exact JSON structure:
 {
-  "topics_learned": ["string"],
-  "topic_summaries": {"topic": "concise description"},
-  "key_concepts": ["string"],
+  "topics": ["string"],
   "important_points": ["string"],
+  "topic_summaries": {"topic": "concise description"},
+  "deep_notes": ["string"],
   "homework": ["string"],
-  "revision_checklist": ["string"],
-  "detailed_explanations": {"topic": "deep explanation paragraph"},
-  "step_by_step_breakdown": ["string"],
-  "real_world_applications": ["string"],
-  "worked_examples": [{"title": "", "problem": "", "approach": "", "solution": ""}],
-  "exam_questions": [{"question": "", "answer": ""}]
+  "practice_questions": ["string"]
 }
 
-CRITICAL RULES:
-- All array items must be JSON strings with double quotes.
-- step_by_step_breakdown items must be plain strings with NO numbers or prefixes outside the quotes.
-- All string values must use double quotes only.
-- No markdown, no code fences, no trailing commas.
-- Output must be a single valid JSON object."""
+Rules:
+- Use only information supported by the transcript. Do not use previous lectures, demo data, assumed subjects, or unrelated knowledge.
+- If a section is not supported by the transcript, return an empty array or object for that section.
+- Keep every generated item relevant to what the teacher actually explained.
+- Return one valid JSON object, with no markdown, code fences, or extra text."""
 
-        prompt = f"Structure this lecture transcript:\n\n{transcript}"
+        prompt = f"Lecture transcript:\n\n{transcript}"
         text = _call_llm(prompt, system_instruction, json_mode=True)
 
         parsed = _parse_json(text)
         if isinstance(parsed, dict):
             return parsed
 
-        return get_mock_summary()
+        raise RuntimeError("Groq returned invalid lecture analysis JSON")
     except Exception as e:
         print(f"Summary generation error: {e}")
-        return get_mock_summary()
-
-
-def get_mock_summary() -> Dict[str, Any]:
-    """Return mock summary for demo"""
-    return {
-        "topics_learned": [
-            "Data Structures Fundamentals",
-            "Arrays and Linked Lists",
-            "Time Complexity Analysis"
-        ],
-        "topic_summaries": {
-            "Data Structures Fundamentals": "Introduction to organizing and storing data efficiently for optimal access and modification.",
-            "Arrays and Linked Lists": "Comparison of contiguous vs node-based storage, trade-offs in access patterns.",
-            "Time Complexity Analysis": "Big O notation basics, analyzing worst-case scenarios."
-        },
-        "key_concepts": [
-            "Big O Notation",
-            "Space vs Time Trade-offs",
-            "Linear vs Constant Time Access",
-            "Dynamic Memory Allocation"
-        ],
-        "important_points": [
-            "Arrays provide O(1) access but O(n) insertion",
-            "Linked lists offer O(1) insertion but O(n) access",
-            "Choose data structures based on use case requirements"
-        ],
-        "homework": [
-            "Implement a singly linked list with insert, delete, search",
-            "Analyze time complexity of your implementation",
-            "Practice 5 array problems on LeetCode"
-        ],
-        "revision_checklist": [
-            "Review Big O notation chart",
-            "Practice array traversal patterns",
-            "Understand pointer manipulation"
-        ],
-        "detailed_explanations": {
-            "Data Structures Fundamentals": "Data structures define how information is organized in memory so that operations like search, insert, update, and delete can be done efficiently. The core idea is to choose a structure that aligns with access patterns and update frequency.",
-            "Arrays and Linked Lists": "Arrays store elements in contiguous memory, enabling constant-time indexed access. Linked lists store nodes with pointers, enabling fast insertions/deletions at known positions but requiring traversal for random access. The choice depends on whether read speed or structural flexibility matters more.",
-            "Time Complexity Analysis": "Time complexity describes growth in operation count as input size increases. Instead of exact runtime, we compare scalability classes such as O(1), O(log n), O(n), and O(n^2). This helps predict performance under large workloads and guides design trade-offs."
-        },
-        "step_by_step_breakdown": [
-            "Identify the operation pattern: frequent reads, writes, or mixed.",
-            "Map each candidate structure to operation costs using Big O.",
-            "Estimate memory overhead and implementation complexity.",
-            "Choose structure based on bottleneck operations.",
-            "Validate choice with small benchmarks and edge-case testing."
-        ],
-        "real_world_applications": [
-            "Arrays are used in image processing where indexed pixel access is frequent.",
-            "Linked lists are used in undo/redo systems and dynamic memory allocators.",
-            "Complexity analysis guides API and database query optimization decisions."
-        ],
-        "worked_examples": [
-            {
-                "title": "Choosing Array vs Linked List",
-                "problem": "Design a playlist that allows fast random song jumps and occasional insertions.",
-                "approach": "Compare array O(1) random access against linked list O(n) traversal.",
-                "solution": "Use an array-backed list for fast indexing and handle occasional insertion overhead."
-            },
-            {
-                "title": "Insertion Cost Analysis",
-                "problem": "Insert an item at the start repeatedly for n operations.",
-                "approach": "Analyze shifting cost for arrays vs pointer updates for linked lists.",
-                "solution": "Linked list is more suitable because head insertion is O(1)."
-            }
-        ],
-        "exam_questions": [
-            {
-                "question": "Why is array index access O(1)?",
-                "answer": "Because element address is computed directly using base address plus index offset."
-            },
-            {
-                "question": "When should a linked list be preferred over an array?",
-                "answer": "When frequent insertions/deletions at known positions are more important than random indexed access."
-            }
-        ]
-    }
+        raise RuntimeError(f"Lecture analysis failed: {e}") from e
 
 
 def _validate_questions(questions: list, num_options: int = 4) -> list:

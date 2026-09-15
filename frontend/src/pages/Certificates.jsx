@@ -1,31 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
 import { Navbar } from '../components/Navbar';
+import FloatingAIButton from '../components/ai-dashboard/FloatingAIButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
-import { Separator } from '../components/ui/separator';
 import {
   Award,
   Download,
   CheckCircle2,
   QrCode,
-  Trophy,
   Calendar,
   ExternalLink,
   Plus,
   Loader2,
-  Lock,
-  ChevronRight,
-  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import API from '../lib/api';
 
 export default function Certificates() {
-  const { user } = useAuth();
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -51,11 +44,11 @@ export default function Certificates() {
     try {
       const response = await axios.post(
         `${API}/certificates/generate`,
-        { course_name: 'CampusAi Capstone Program' },
+        { course_name: 'CampusAI Professional Learning Certificate' },
         { withCredentials: true }
       );
       setCertificates(prev => [response.data, ...prev]);
-      toast.success('Certificate generated!');
+      toast.success('Certificate generated successfully!');
     } catch (error) {
       console.error('Error generating certificate:', error);
       toast.error('Failed to generate certificate');
@@ -74,66 +67,45 @@ export default function Certificates() {
     const centerX = width / 2;
     ctx.textAlign = 'center';
 
-    // Base background
-    ctx.fillStyle = '#f6f6f8';
+    const roundRect = (x, y, w, h, radius) => {
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, radius);
+    };
+
+    // CampusAI visual system: soft grid, bright accents, and a bento-style score panel.
+    const background = ctx.createLinearGradient(0, 0, width, height);
+    background.addColorStop(0, '#f8fbff');
+    background.addColorStop(0.55, '#ffffff');
+    background.addColorStop(1, '#faf7ff');
+    ctx.fillStyle = background;
     ctx.fillRect(0, 0, width, height);
 
-    // Ribbons
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(320, 0); ctx.lineTo(0, 210); ctx.closePath();
-    ctx.fillStyle = '#2c3fe1'; ctx.fill();
-
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(280, 0); ctx.lineTo(0, 170); ctx.closePath();
-    ctx.fillStyle = '#1a2fb8'; ctx.fill();
-
-    ctx.beginPath(); ctx.moveTo(width, height); ctx.lineTo(width - 340, height); ctx.lineTo(width, height - 220); ctx.closePath();
-    ctx.fillStyle = '#2c3fe1'; ctx.fill();
-
-    ctx.beginPath(); ctx.moveTo(width, height); ctx.lineTo(width - 300, height); ctx.lineTo(width, height - 180); ctx.closePath();
-    ctx.fillStyle = '#1a2fb8'; ctx.fill();
-
-    for (let i = 0; i < 18; i += 1) {
-      const yOffset = i * 5;
-      const alpha = 0.07 + i * 0.01;
-      ctx.beginPath();
-      ctx.moveTo(90, 520 + yOffset);
-      ctx.bezierCurveTo(280, 410 + yOffset, 440, 700 - yOffset, 650, 540 + yOffset);
-      ctx.bezierCurveTo(790, 430 + yOffset, 920, 360 + yOffset, 1130, 420 + yOffset);
-      ctx.strokeStyle = i % 2 === 0 ? `rgba(64, 206, 216, ${alpha})` : `rgba(234, 76, 195, ${alpha})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = '#173f38'; ctx.font = 'bold 78px Georgia'; ctx.fillText('CERTIFICATE', centerX, 165);
-    ctx.font = '52px Georgia'; ctx.fillText('OF APPRECIATION', centerX, 232);
-    ctx.fillStyle = '#1f4740'; ctx.font = '48px Georgia'; ctx.fillText('This certificate is proudly presented to:', centerX, 306);
-    ctx.fillStyle = '#1f5a4f'; ctx.font = 'italic 86px "Brush Script MT", "Times New Roman", serif'; ctx.fillText(cert.user_name || 'Student Name', centerX, 398);
-
-    ctx.beginPath(); ctx.moveTo(305, 430); ctx.lineTo(895, 430); ctx.strokeStyle = '#b59c72'; ctx.lineWidth = 3; ctx.stroke();
-
-    ctx.fillStyle = '#23453f'; ctx.font = '34px Arial'; ctx.fillText(`For outstanding work in ${cert.course_name || 'CampusAi Capstone Program'}`, centerX, 492);
-    ctx.font = '30px Arial'; ctx.fillText(`Academic ${Math.round(cert.academic_score || 0)}%   |   Coding ${Math.round(cert.coding_score || 0)}   |   Rank #${cert.overall_rank || '-'}`, centerX, 538);
+    ctx.strokeStyle = 'rgba(99, 102, 241, 0.07)'; ctx.lineWidth = 1;
+    for (let x = 40; x < width - 40; x += 32) { ctx.beginPath(); ctx.moveTo(x, 40); ctx.lineTo(x, height - 40); ctx.stroke(); }
+    for (let y = 40; y < height - 40; y += 32) { ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(width - 40, y); ctx.stroke(); }
+    const frame = ctx.createLinearGradient(40, 40, width - 40, height - 40);
+    frame.addColorStop(0, '#4f46e5'); frame.addColorStop(0.5, '#22d3ee'); frame.addColorStop(1, '#a855f7');
+    roundRect(24, 24, width - 48, height - 48, 28); ctx.fillStyle = frame; ctx.fill();
+    roundRect(39, 39, width - 78, height - 78, 18); ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.fillStyle = '#0f172a'; ctx.font = 'bold 34px Arial'; ctx.textAlign = 'left'; ctx.fillText('CampusAI', 88, 112);
+    ctx.fillStyle = '#4f46e5'; ctx.font = 'bold 15px Arial'; ctx.fillText('LEARNING PLATFORM', 91, 137);
+    ctx.fillStyle = '#22d3ee'; ctx.fillRect(88, 151, 82, 4);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a'; ctx.font = 'bold 62px Arial'; ctx.fillText('CERTIFICATE', centerX, 235);
+    ctx.fillStyle = '#4f46e5'; ctx.font = 'bold 23px Arial'; ctx.fillText('OF PROFESSIONAL ACHIEVEMENT', centerX, 278);
+    ctx.fillStyle = '#475569'; ctx.font = '23px Arial'; ctx.fillText('This credential is awarded to', centerX, 350);
+    ctx.fillStyle = '#0f172a'; ctx.font = 'bold 54px Georgia'; ctx.fillText(cert.user_name || 'Verified Learner', centerX, 425);
+    ctx.beginPath(); ctx.moveTo(280, 450); ctx.lineTo(920, 450); ctx.strokeStyle = '#c4b5fd'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#334155'; ctx.font = '23px Arial'; ctx.fillText(`For completing ${cert.course_name || 'CampusAI Professional Learning Certificate'}`, centerX, 510);
+    roundRect(260, 535, 680, 58, 16); ctx.fillStyle = '#eef4ff'; ctx.fill();
+    ctx.fillStyle = '#3730a3'; ctx.font = 'bold 21px Arial'; ctx.fillText(`Academic ${Math.round(cert.academic_score || 0)}%   |   Coding ${Math.round(cert.coding_score || 0)}   |   Rank #${cert.overall_rank || '-'}`, centerX, 571);
     const issuedOn = new Date(cert.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    ctx.font = '26px Arial'; ctx.fillText(`Issued on ${issuedOn}`, centerX, 580);
-
-    ctx.fillStyle = '#21594f'; ctx.font = 'italic 72px "Brush Script MT", "Times New Roman", serif'; ctx.fillText('Signature', centerX, 690);
-    ctx.font = 'bold 48px Georgia'; ctx.fillText('CampusAi Manager', centerX, 748);
-    ctx.font = '22px monospace'; ctx.fillStyle = '#3c5f59'; ctx.fillText(`Verification ID: ${cert.verification_code}`, centerX, 794);
-
-    const sealX = 980; const sealY = 730; const rays = 18;
-    for (let i = 0; i < rays; i += 1) {
-      const angle = (Math.PI * 2 * i) / rays;
-      const x1 = sealX + Math.cos(angle) * 42; const y1 = sealY + Math.sin(angle) * 42;
-      const x2 = sealX + Math.cos(angle + 0.08) * 58; const y2 = sealY + Math.sin(angle + 0.08) * 58;
-      const x3 = sealX + Math.cos(angle - 0.08) * 58; const y3 = sealY + Math.sin(angle - 0.08) * 58;
-      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.closePath();
-      ctx.fillStyle = '#f0ba18'; ctx.fill();
-    }
-    ctx.beginPath(); ctx.arc(sealX, sealY, 42, 0, Math.PI * 2); ctx.fillStyle = '#ffd74f'; ctx.fill();
-    ctx.beginPath(); ctx.arc(sealX, sealY, 31, 0, Math.PI * 2); ctx.fillStyle = '#f6c218'; ctx.fill();
-    ctx.beginPath(); ctx.arc(sealX, sealY, 27, 0, Math.PI * 2); ctx.fillStyle = '#fff0a4'; ctx.fill();
-
-    ctx.beginPath(); ctx.moveTo(sealX - 18, sealY + 34); ctx.lineTo(sealX - 54, sealY + 112); ctx.lineTo(sealX - 10, sealY + 92); ctx.fillStyle = '#f5c62c'; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(sealX + 18, sealY + 34); ctx.lineTo(sealX + 54, sealY + 112); ctx.lineTo(sealX + 10, sealY + 92); ctx.fillStyle = '#f3bd20'; ctx.fill();
+    ctx.fillStyle = '#64748b'; ctx.font = '18px Arial'; ctx.fillText(`Issued on ${issuedOn}`, centerX, 625);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#0f172a'; ctx.font = 'bold 23px Arial'; ctx.fillText('CampusAI Learning Team', 112, 724);
+    ctx.fillStyle = '#64748b'; ctx.font = '15px Arial'; ctx.fillText('Authorized Credential Issuer', 114, 750);
+    roundRect(875, 687, 210, 78); ctx.fillStyle = '#f5f3ff'; ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = '#4f46e5'; ctx.font = 'bold 20px Arial'; ctx.fillText('VERIFIED', 980, 718);
+    ctx.fillStyle = '#64748b'; ctx.font = '14px monospace'; ctx.fillText(cert.verification_code, 980, 744);
 
     const link = document.createElement('a');
     link.download = `certificate-${cert.verification_code}.png`;
@@ -141,14 +113,6 @@ export default function Certificates() {
     link.click();
     toast.success('Certificate downloaded!');
   };
-
-  const inProgressCerts = [
-    { title: 'Data Structures Advanced certification', progress: 72, instruction: 'Complete the remaining stack & sorting quizzes to unlock.' }
-  ];
-
-  const availableCerts = [
-    { title: 'Object Oriented Programming Certification', topic: 'OOP Mastery' }
-  ];
 
   if (loading) {
     return (
@@ -188,7 +152,7 @@ export default function Certificates() {
             ) : (
               <Plus className="w-4 h-4 mr-1.5" />
             )}
-            Generate Capstone Demo
+            Generate Certificate
           </Button>
         </div>
 
@@ -196,7 +160,7 @@ export default function Certificates() {
         <div className="grid lg:grid-cols-3 gap-8">
           
           {/* EARNED CERTIFICATES (2/3) */}
-          <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-3 space-y-6">
             <h3 className="font-extrabold text-lg text-gray-800 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               Earned Certificates
@@ -275,49 +239,6 @@ export default function Certificates() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* IN PROGRESS & AVAILABLE (1/3) */}
-          <div className="space-y-6">
-            
-            {/* In Progress */}
-            <div className="space-y-4">
-              <h3 className="font-extrabold text-lg text-gray-800">In Progress</h3>
-              {inProgressCerts.map((c, idx) => (
-                <Card key={idx} className="bento-tile p-5 border-gray-100 shadow-soft bg-white/95 space-y-4">
-                  <div>
-                    <h4 className="font-bold text-xs text-gray-700 leading-snug">{c.title}</h4>
-                    <p className="text-[10px] text-gray-400 mt-1">{c.instruction}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-gray-400">
-                      <span>Milestone Progress</span>
-                      <span className="text-indigo-600">{c.progress}%</span>
-                    </div>
-                    <Progress value={c.progress} className="h-1.5" indicatorClassName="bg-indigo-600" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {/* Available Certifications */}
-            <div className="space-y-4">
-              <h3 className="font-extrabold text-lg text-gray-800">Available Certifications</h3>
-              {availableCerts.map((c, idx) => (
-                <Card key={idx} className="bento-tile p-5 border-gray-100 shadow-soft bg-gray-50/50 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-gray-100 text-gray-400">
-                      <Lock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-gray-600 leading-snug">{c.title}</h4>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Focus: {c.topic}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
           </div>
 
         </div>

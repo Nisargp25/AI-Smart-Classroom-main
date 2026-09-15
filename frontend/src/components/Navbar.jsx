@@ -63,7 +63,6 @@ export function Navbar() {
             </div>
             <div className="flex flex-col text-left leading-none hidden sm:block">
               <span className="font-extrabold text-gray-900 dark:text-white text-base tracking-tight uppercase">CampusAI</span>
-              <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">INTELLIGENCE</span>
             </div>
           </Link>
 

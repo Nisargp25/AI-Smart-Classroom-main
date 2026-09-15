@@ -43,6 +43,14 @@ def auth_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture(scope="module")
+def demo_auth(client):
+    """Seed demo student/teacher accounts and return auth headers for them."""
+    seed_resp = client.post("/api/demo/seed")
+    assert seed_resp.status_code == 200, seed_resp.text
+    return seed_resp.json()
+
+
 def test_root_endpoint(client):
     resp = client.get("/api/")
     assert resp.status_code == 200
@@ -98,3 +106,68 @@ def test_get_my_performance(client, auth_headers):
 def test_get_coding_profile(client, auth_headers):
     resp = client.get("/api/coding-profile", headers=auth_headers)
     assert resp.status_code == 200
+
+
+def test_student_chat_is_role_aware(client, demo_auth):
+    # Use a real student account from the seeded demo dataset.
+    resp = client.post(
+        "/api/auth/login",
+        json={"email": "student1@demo.com", "password": "demo123"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json().get("token")
+    assert token
+
+    chat_resp = client.post(
+        "/api/chat",
+        json={"message": "What are my weak topics?"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert chat_resp.status_code == 200, chat_resp.text
+    payload = chat_resp.json()
+    assert payload["role"] == "student"
+    assert "weak" in payload["response"].lower() or "performance" in payload["response"].lower()
+
+
+def test_teacher_chat_is_role_aware(client, demo_auth):
+    resp = client.post(
+        "/api/auth/login",
+        json={"email": "teacher@demo.com", "password": "demo123"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json().get("token")
+    assert token
+
+    chat_resp = client.post(
+        "/api/chat",
+        json={"message": "Analyze my class."},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert chat_resp.status_code == 200, chat_resp.text
+    payload = chat_resp.json()
+    assert payload["role"] == "teacher"
+    assert "class" in payload["response"].lower() or "students" in payload["response"].lower()
+
+
+def test_chat_history_supports_follow_up_references(client, demo_auth):
+    resp = client.post(
+        "/api/auth/login",
+        json={"email": "student1@demo.com", "password": "demo123"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json().get("token")
+
+    chat_resp = client.post(
+        "/api/chat",
+        json={
+            "message": "Explain it",
+            "history": [
+                {"role": "user", "content": "What are my weak topics?"},
+                {"role": "assistant", "content": "Your weakest topic is Data Structures at 85%."},
+            ],
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert chat_resp.status_code == 200, chat_resp.text
+    payload = chat_resp.json()
+    assert "data structures" in payload["response"].lower()

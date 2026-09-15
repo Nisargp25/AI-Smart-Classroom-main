@@ -3,7 +3,9 @@
  * Replaces duplicated inline API URL construction across AuthContext, Login, and other pages.
  */
 const API = (() => {
-  const configured = (process.env.REACT_APP_BACKEND_URL || '').replace(/\/$/, '');
+  const configured = (process.env.REACT_APP_BACKEND_URL || '')
+    .replace(/\/+$/, '')
+    .replace(/\/api$/, '');
   const host = window.location.hostname;
   const isRemoteHost = host !== 'localhost' && host !== '127.0.0.1';
   const isDevTunnelHost = /-4000\..*\.devtunnels\.ms$/i.test(host);
@@ -12,11 +14,13 @@ const API = (() => {
     return `${window.location.origin}/api`;
   }
 
-  if (isRemoteHost && (!configured || configured.includes('localhost') || configured.includes('127.0.0.1'))) {
-    return `${window.location.protocol}//${window.location.hostname}:8000/api`;
-  }
+    // Use the current origin when the frontend is reached remotely. The dev-server
+    // proxy (and tunnel) exposes the backend through the frontend host.
+    if (isRemoteHost && (!configured || configured.includes('localhost') || configured.includes('127.0.0.1'))) {
+      return `/api`;
+    }
 
-  // For local development — use relative path so craco proxy forwards /api -> backend
+    // For local development, let craco proxy /api to the backend.
   if (!configured && (host === 'localhost' || host === '127.0.0.1')) {
     return `/api`;
   }

@@ -8,6 +8,7 @@ import logging
 import base64
 import hashlib
 import hmac
+import re
 from pathlib import Path
 from typing import List, Optional
 import uuid
@@ -18,7 +19,7 @@ import json
 from models import (
     User, UserCreate, Lecture, LectureCreate, Quiz, QuizQuestion,
     QuizAttempt, Certificate, CodingProfile, Ranking, Announcement,
-    StudentPerformance, generate_id,
+    StudentPerformance, ChatHistory, generate_id,
 )
 from auth import (
     create_session_token,
@@ -30,8 +31,8 @@ AI_IMPORT_ERROR = None
 try:
     from ai_service import (
         transcribe_audio, clean_transcript, generate_lecture_summary,
-        generate_quiz_questions, generate_chat_response, get_coding_recommendations, get_mock_summary,
-        get_mock_questions
+        generate_quiz_questions, generate_chat_response, chat_with_classroom_ai,
+        get_coding_recommendations, get_mock_questions
     )
 except Exception as import_error:
     AI_IMPORT_ERROR = str(import_error)
@@ -51,25 +52,11 @@ except Exception as import_error:
     async def generate_chat_response(*args, **kwargs):
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
 
-    async def get_coding_recommendations(*args, **kwargs):
+    async def chat_with_classroom_ai(*args, **kwargs):
         raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
 
-    def get_mock_summary(*args, **kwargs):
-        return {
-            "topics_learned": ["AI service unavailable"],
-            "topic_summaries": {
-                "AI service unavailable": "Install backend AI dependencies to enable generated notes."
-            },
-            "key_concepts": [],
-            "important_points": [f"AI service unavailable: {AI_IMPORT_ERROR}"],
-            "homework": [],
-            "revision_checklist": [],
-            "detailed_explanations": {},
-            "step_by_step_breakdown": [],
-            "real_world_applications": [],
-            "worked_examples": [],
-            "exam_questions": [],
-        }
+    async def get_coding_recommendations(*args, **kwargs):
+        raise HTTPException(status_code=503, detail=f"AI service unavailable: {AI_IMPORT_ERROR}")
 
     def get_mock_questions(*args, **kwargs):
         return []
@@ -132,6 +119,12 @@ def normalize_summary(summary: Optional[dict]) -> dict:
     if "key_points" in summary and "key_concepts" not in summary:
         summary["key_concepts"] = summary.get("key_points", [])
 
+    if "topics" in summary and "topics_learned" not in summary:
+        summary["topics_learned"] = summary.get("topics", [])
+
+    if "practice_questions" in summary and "exam_questions" not in summary:
+        summary["exam_questions"] = summary.get("practice_questions", [])
+
     if "topic_summaries" not in summary:
         summary["topic_summaries"] = {}
 
@@ -149,30 +142,20 @@ def normalize_summary(summary: Optional[dict]) -> dict:
     return summary
 
 
-def build_topic_fallback_summary(lecture: dict, error_message: str) -> dict:
-    """Fallback summary scoped to lecture metadata when AI processing fails."""
-    topic = lecture.get("topic") or "Recorded Topic"
-    title = lecture.get("title") or "Lecture"
-    subject = lecture.get("subject") or "General"
-    summary = normalize_summary(get_mock_summary())
-    summary["topics_learned"] = [topic]
-    summary["topic_summaries"] = {
-        topic: f"Auto-summary fallback for {title}. AI transcription/summarization failed, so this was generated from lecture metadata."
-    }
-    summary["important_points"] = [
-        f"Subject: {subject}",
-        f"Topic: {topic}",
-        "This lecture was processed using auto-generated notes. AI-powered summaries will be available once the service quota resets.",
-    ]
-    summary["homework"] = [
-        f"Review core concepts from '{topic}'.",
-        "Retry processing after confirming backend LLM key and transcription model access.",
-    ]
-    summary["revision_checklist"] = [
-        "Re-run lecture processing once AI service is available.",
-        "Verify microphone clarity and recording duration.",
-    ]
-    return summary
+def transcript_hash(transcript: str) -> str:
+    """Return a stable fingerprint for the transcript used to generate notes."""
+    return hashlib.sha256((transcript or "").strip().encode("utf-8")).hexdigest()
+
+
+def analysis_is_current(lecture: dict) -> bool:
+    """Check that saved analysis belongs to the current stored transcript."""
+    transcript = lecture.get("clean_transcript") or lecture.get("raw_transcript")
+    return bool(
+        transcript
+        and isinstance(lecture.get("summary"), dict)
+        and lecture.get("analysis_status") == "generated"
+        and lecture.get("transcript_hash") == transcript_hash(transcript)
+    )
 
 
 async def initialize_user_profile(user_id: str):
@@ -198,6 +181,314 @@ async def initialize_user_profile(user_id: str):
         "coding_score": 0.0,
         "last_synced": now,
     })
+
+
+def _resolve_follow_up_topic(message: str, history: Optional[List[dict]] = None) -> str:
+    """Resolve pronoun-style follow-up prompts using previous chat content."""
+    msg = (message or "").strip()
+    if not msg:
+        return ""
+    lowered = msg.lower()
+
+    pronoun_patterns = [
+        r"^explain\s+(it|this|that|the topic)$",
+        r"^summarize\s+(it|this|that|the topic)$",
+        r"^tell me about\s+(it|this|that|the topic)$",
+        r"^what is\s+(it|this|that|the topic)$",
+        r"^create a quiz on\s+(it|this|that|the topic)$",
+        r"^give me a quiz on\s+(it|this|that|the topic)$",
+        r"^quiz on\s+(it|this|that|the topic)$",
+    ]
+    for pattern in pronoun_patterns:
+        if re.match(pattern, lowered):
+            history = history or []
+            for item in reversed(history):
+                text = str((item or {}).get("content") or "").strip()
+                if not text:
+                    continue
+                # Look for patterns like "Your weakest topic is Data Structures" or "Topic is X"
+                topic_match = re.search(r"(?:weakest topic|topic|most difficult topic|weak topic)\s+(?:is\s+)?([A-Za-z][A-Za-z0-9\s&/-]*?)(?:\s+at\s+\d+%|\.|,|$)", text, flags=re.IGNORECASE)
+                if topic_match:
+                    captured = topic_match.group(1).strip()
+                    if captured and not "not enough data" in captured.lower():
+                        return captured
+            return ""
+
+    return msg
+
+
+def _detect_chat_intent(message: str, role: str) -> str:
+    """Map a user message to a classroom-related intent."""
+    msg = (message or "").lower()
+    if role == "teacher":
+        if any(k in msg for k in ["analyze my class", "class performance", "class", "students need help", "weakest topic", "class analysis"]):
+            return "teacher_class_analysis"
+        if any(k in msg for k in ["weak topics", "difficult topic", "topic is difficult", "weakest topics"]):
+            return "teacher_weak_topics"
+        if any(k in msg for k in ["students need help", "at risk", "below 60", "low scores", "which students"]):
+            return "teacher_student_analysis"
+        if any(k in msg for k in ["quiz", "quiz analysis", "most difficult", "lowest performance", "performance in the last quiz"]):
+            return "teacher_quiz_analysis"
+        if any(k in msg for k in ["revision plan", "teaching recommendation", "recommendation", "create a revision", "plan for my class"]):
+            return "teacher_revision_plan"
+        if any(k in msg for k in ["create quiz", "generate quiz", "quiz on"]):
+            return "teacher_quiz_generation"
+        return "teacher_general_question"
+
+    if any(k in msg for k in ["weak topic", "weak topics", "my performance", "progress", "ranking", "quiz analysis", "what should i study", "study plan", "how am i performing"]):
+        return "student_performance"
+    if any(k in msg for k in ["code", "coding", "problem", "recommend coding", "leetcode", "hackerrank"]):
+        return "student_coding_recommendation"
+    if any(k in msg for k in ["lecture", "summarize", "explain", "today's lecture", "topic"]):
+        return "student_lecture_help"
+    if any(k in msg for k in ["quiz", "take a quiz", "questions", "my quiz"]):
+        return "student_quiz_request"
+    return "student_general_question"
+
+
+async def _get_student_chat_context(current_user: dict, message: str, lecture_id: Optional[str] = None) -> dict:
+    """Collect role-scoped data for a student chat request."""
+    user_id = current_user.get("user_id")
+    if not user_id:
+        return {"message": message, "role": "student"}
+
+    performance = await db.student_performance.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    coding = await db.coding_profiles.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    ranking = await db.rankings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    recent_attempts = await db.quiz_attempts.find({"user_id": user_id}, {"_id": 0}).sort("submitted_at", -1).limit(5).to_list(5)
+
+    topic_scores = performance.get("topic_scores", {}) or {}
+    weak_topics = {topic: score for topic, score in topic_scores.items() if isinstance(score, (int, float)) and score < 70}
+    sorted_weak_topics = sorted(weak_topics.items(), key=lambda item: item[1])
+
+    class_name = current_user.get("class_name")
+    division = current_user.get("division")
+    lecture_query = {}
+    if class_name:
+        lecture_query["$or"] = [
+            {"class_name": {"$exists": False}},
+            {"class_name": None},
+            {"class_name": "All"},
+            {"class_name": class_name, "division": {"$in": [None, "All", division]}}
+        ]
+
+    lectures = await db.lectures.find(lecture_query, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
+    current_lecture = None
+    if lecture_id:
+        current_lecture = await db.lectures.find_one(
+            {"lecture_id": lecture_id, **lecture_query},
+            {"_id": 0, "lecture_id": 1, "title": 1, "clean_transcript": 1, "raw_transcript": 1},
+        )
+
+    return {
+        "role": "student",
+        "user": {
+            "name": current_user.get("name"),
+            "class_name": class_name,
+            "division": division,
+        },
+        "performance": performance,
+        "weak_topics": dict(sorted_weak_topics[:5]),
+        "recent_quiz_attempts": recent_attempts,
+        "coding_profile": coding,
+        "ranking": ranking,
+        "lectures": lectures,
+        "current_lecture": current_lecture,
+        "message": message,
+    }
+
+
+async def _get_teacher_chat_context(current_user: dict, message: str, lecture_id: Optional[str] = None) -> dict:
+    """Collect authorized class-level data for a teacher chat request."""
+    class_name = current_user.get("class_name")
+    division = current_user.get("division")
+    user_id = current_user.get("user_id")
+
+    students = []
+    if class_name:
+        student_docs = await db.users.find({
+            "role": "student",
+            "class_name": class_name,
+            "division": division,
+        }, {"_id": 0, "password_hash": 0}).to_list(200)
+        for student in student_docs:
+            perf = await db.student_performance.find_one({"user_id": student.get("user_id")}, {"_id": 0}) or {}
+            ranking = await db.rankings.find_one({"user_id": student.get("user_id")}, {"_id": 0}) or {}
+            students.append({
+                "user": student,
+                "performance": perf,
+                "ranking": ranking,
+            })
+    else:
+        students = []
+
+    current_lecture = None
+    if lecture_id:
+        current_lecture = await db.lectures.find_one(
+            {"lecture_id": lecture_id, "teacher_id": user_id},
+            {"_id": 0, "lecture_id": 1, "title": 1, "clean_transcript": 1, "raw_transcript": 1},
+        )
+
+    topic_totals = {}
+    topic_counts = {}
+    for item in students:
+        perf = item.get("performance", {}) or {}
+        for topic, score in (perf.get("topic_scores", {}) or {}).items():
+            if not isinstance(score, (int, float)):
+                continue
+            topic_totals[topic] = topic_totals.get(topic, 0) + float(score)
+            topic_counts[topic] = topic_counts.get(topic, 0) + 1
+
+    weak_topics = {}
+    for topic, total in topic_totals.items():
+        weak_topics[topic] = total / max(1, topic_counts.get(topic, 1))
+
+    at_risk = [
+        entry for entry in students
+        if (entry.get("performance", {}) or {}).get("average_percentage", 0) < 60
+    ]
+
+    class_average = 0
+    if students:
+        scores = [
+            float((item.get("performance", {}) or {}).get("average_percentage", 0))
+            for item in students
+            if isinstance((item.get("performance", {}) or {}).get("average_percentage", 0), (int, float))
+        ]
+        class_average = round(sum(scores) / len(scores), 2) if scores else 0
+
+    class_lectures = []
+    if class_name:
+        class_lectures = await db.lectures.find({
+            "teacher_id": user_id,
+            "class_name": class_name,
+            "division": division,
+        }, {"_id": 0}).sort("created_at", -1).limit(10).to_list(10)
+
+    return {
+        "role": "teacher",
+        "teacher": {
+            "name": current_user.get("name"),
+            "class_name": class_name,
+            "division": division,
+        },
+        "students": students,
+        "student_count": len(students),
+        "class_average": class_average,
+        "weak_topics": dict(sorted(weak_topics.items(), key=lambda item: item[1])[:5]),
+        "students_needing_support": len(at_risk),
+        "lectures": class_lectures,
+        "current_lecture": current_lecture,
+        "message": message,
+    }
+
+
+@api_router.post("/chat")
+async def chat(request: Request):
+    """Generate a role-aware classroom chat response using the authenticated user's data."""
+    current_user = await get_current_user(request, db)
+    role = (current_user.get("role") or "student").strip().lower()
+    user_id = current_user.get("user_id")
+
+    data = await request.json()
+    message = str(data.get("message", "")).strip()
+    lecture_id = str(data.get("lecture_id", "")).strip() or None
+    frontend_history = data.get("history") or []
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    # Fetch persistent history from database (last 5 messages for context)
+    db_history_raw = await db.chat_history.find(
+        {"user_id": user_id}
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    # Convert DB history to the same format as frontend history
+    db_history = []
+    for entry in reversed(db_history_raw):  # Reverse to get chronological order
+        db_history.append({"role": "user", "content": entry.get("user_message", "")})
+        db_history.append({"role": "assistant", "content": entry.get("ai_response", "")})
+
+    
+    # Merge frontend history (more recent) with DB history
+    merged_history = db_history + frontend_history
+
+    # Try to resolve follow-up prompts like "Explain it"
+    resolved_topic = _resolve_follow_up_topic(message, merged_history)
+    if resolved_topic and resolved_topic != message:
+        # Replace the pronoun with the actual topic
+        message = re.sub(r'\b(it|this|that|the topic)\b', resolved_topic, message, flags=re.IGNORECASE)
+
+    intent = _detect_chat_intent(message, role)
+    if role == "student":
+        context = await _get_student_chat_context(current_user, message, lecture_id)
+    elif role == "teacher":
+        context = await _get_teacher_chat_context(current_user, message, lecture_id)
+    else:
+        context = {"role": role, "message": message}
+
+    response = await chat_with_classroom_ai(message, role, intent, context)
+    if not response:
+        raise HTTPException(status_code=503, detail="Sorry, I couldn't generate a response right now. Please try again.")
+    return {"response": response, "role": role, "intent": intent}
+
+
+@api_router.post("/chat/history/save")
+async def save_chat_history(request: Request):
+    """Save a chat message and response to persistent history."""
+    current_user = await get_current_user(request, db)
+    data = await request.json()
+    
+    user_message = str(data.get("message", "")).strip()
+    ai_response = str(data.get("response", "")).strip()
+    intent = str(data.get("intent", "")).strip()
+    role = (current_user.get("role") or "student").strip().lower()
+    
+    if not user_message or not ai_response:
+        raise HTTPException(status_code=400, detail="Message and response are required")
+    
+    chat_entry = {
+        "chat_id": f"chat_{uuid.uuid4().hex[:12]}",
+        "user_id": current_user.get("user_id"),
+        "user_role": role,
+        "user_message": user_message,
+        "ai_response": ai_response,
+        "intent": intent,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    
+    result = await db.chat_history.insert_one(chat_entry)
+    return {"success": True, "chat_id": chat_entry["chat_id"]}
+
+
+@api_router.get("/chat/history")
+async def get_chat_history(request: Request, limit: int = 10):
+    """Retrieve recent chat history for the current user."""
+    current_user = await get_current_user(request, db)
+    user_id = current_user.get("user_id")
+    
+    if limit < 1 or limit > 50:
+        limit = 10
+    
+    history = await db.chat_history.find(
+        {"user_id": user_id}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Reverse to get chronological order (oldest first)
+    history.reverse()
+    
+    # Format for frontend consumption
+    formatted_history = []
+    for entry in history:
+        formatted_history.append({
+            "role": "user",
+            "content": entry.get("user_message", ""),
+        })
+        formatted_history.append({
+            "role": "assistant",
+            "content": entry.get("ai_response", ""),
+        })
+    
+    return {"history": formatted_history}
 
 # ==================== AUTH ROUTES ====================
 
@@ -377,23 +668,122 @@ async def update_user_role(request: Request):
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return user
 
-# ==================== AI CHAT ROUTES ====================
-
-@api_router.post("/chat")
-async def chat(request: Request):
-    """Generate a classroom chat response using the configured Groq model."""
-    await get_current_user(request, db)
-    data = await request.json()
-    message = str(data.get("message", "")).strip()
-    if not message:
-        raise HTTPException(status_code=400, detail="Message is required")
-
-    response = await generate_chat_response(message)
-    if not response:
-        raise HTTPException(status_code=503, detail="Sorry, I couldn't generate a response right now. Please try again.")
-    return {"response": response}
-
 # ==================== LECTURE ROUTES ====================
+
+async def get_teacher_classroom_options(current_user: dict) -> dict:
+    """Build classroom choices from students assigned to this teacher's profile."""
+    class_name = current_user.get("class_name")
+    division = current_user.get("division")
+    if not class_name or not division:
+        return {"classes": [], "divisions": [], "batches": []}
+
+    students = await db.users.find(
+        {"role": "student", "class_name": class_name, "division": division},
+        {"_id": 0, "class_name": 1, "division": 1, "batch": 1, "batch_id": 1, "batch_name": 1},
+    ).to_list(10000)
+    batches = {}
+    for student in students:
+        batch_id = student.get("batch_id") or student.get("batch")
+        if batch_id is None or str(batch_id).strip() == "":
+            continue
+        batch_id = str(batch_id)
+        batch_name = str(student.get("batch_name") or student.get("batch") or batch_id)
+        batches[batch_id] = {"id": batch_id, "name": batch_name}
+
+    return {
+        "classes": [{"id": class_name, "name": class_name}],
+        "divisions": [{"id": division, "name": division}],
+        "batches": sorted(batches.values(), key=lambda item: item["name"]),
+    }
+
+
+@api_router.get("/classroom/options")
+async def get_classroom_options(request: Request):
+    """Return only the current teacher's class, division, and student batches."""
+    current_user = await get_current_user(request, db)
+    if current_user.get("role") not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Only teachers can view classroom options")
+    return await get_teacher_classroom_options(current_user)
+
+@api_router.get("/teacher/analytics")
+async def get_teacher_analytics(request: Request):
+    """Return real, teacher-scoped classroom analytics."""
+    current_user = await get_current_user(request, db)
+    if current_user.get("role") not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Only teachers can view classroom analytics")
+
+    teacher_id = current_user["user_id"]
+    class_name = current_user.get("class_name")
+    division = current_user.get("division")
+    student_query = {"role": "student"}
+    if class_name:
+        student_query.update({"class_name": class_name, "division": division})
+    else:
+        student_query["user_id"] = {"$exists": False}
+
+    students = await db.users.find(student_query, {"_id": 0, "user_id": 1}).to_list(10000)
+    student_ids = [student["user_id"] for student in students if student.get("user_id")]
+    performances = await db.student_performance.find(
+        {"user_id": {"$in": student_ids}},
+        {"_id": 0, "user_id": 1, "average_percentage": 1, "topic_scores": 1},
+    ).to_list(10000)
+    scores = [
+        float(item["average_percentage"])
+        for item in performances
+        if isinstance(item.get("average_percentage"), (int, float))
+        and item.get("average_percentage") is not None
+    ]
+    class_average = round(sum(scores) / len(scores), 2) if scores else None
+    class_level = None
+    if class_average is not None:
+        class_level = "Beginner" if class_average < 60 else "Intermediate" if class_average < 80 else "Advanced"
+
+    lectures = await db.lectures.find(
+        {"teacher_id": teacher_id},
+        {"_id": 0, "lecture_id": 1, "title": 1, "created_at": 1},
+    ).sort("created_at", -1).to_list(10000)
+    quizzes = await db.quizzes.find(
+        {"created_by": teacher_id},
+        {"_id": 0, "quiz_id": 1, "title": 1, "topic": 1, "created_at": 1},
+    ).sort("created_at", -1).to_list(10000)
+    quiz_ids = [quiz["quiz_id"] for quiz in quizzes if quiz.get("quiz_id")]
+    quiz_lookup = {quiz["quiz_id"]: quiz for quiz in quizzes}
+    attempts = await db.quiz_attempts.find(
+        {"user_id": {"$in": student_ids}, "quiz_id": {"$in": quiz_ids}},
+        {"_id": 0, "quiz_id": 1, "percentage": 1, "submitted_at": 1},
+    ).sort("submitted_at", -1).to_list(10000)
+
+    assessment_totals = {}
+    for attempt in attempts:
+        quiz_id = attempt.get("quiz_id")
+        percentage = attempt.get("percentage")
+        if quiz_id not in quiz_lookup or not isinstance(percentage, (int, float)):
+            continue
+        assessment = assessment_totals.setdefault(quiz_id, {"scores": [], "submitted_at": attempt.get("submitted_at")})
+        assessment["scores"].append(float(percentage))
+        if attempt.get("submitted_at") and (not assessment["submitted_at"] or attempt["submitted_at"] > assessment["submitted_at"]):
+            assessment["submitted_at"] = attempt["submitted_at"]
+    performance_trend = []
+    for quiz_id, assessment in assessment_totals.items():
+        if assessment["scores"]:
+            quiz = quiz_lookup[quiz_id]
+            performance_trend.append({
+                "quiz_id": quiz_id,
+                "label": quiz.get("title") or quiz.get("topic") or "Assessment",
+                "score": round(sum(assessment["scores"]) / len(assessment["scores"]), 2),
+                "submitted_at": assessment["submitted_at"],
+            })
+    performance_trend.sort(key=lambda item: item.get("submitted_at") or "")
+
+    return {
+        "teacher": {"name": current_user.get("name"), "class_name": class_name, "division": division},
+        "student_count": len(student_ids),
+        "lecture_count": len(lectures),
+        "quiz_count": len(quizzes),
+        "average_score": class_average,
+        "class_level": class_level,
+        "performance_trend": performance_trend[-12:],
+    }
 
 @api_router.post("/lectures")
 async def create_lecture(request: Request):
@@ -405,17 +795,19 @@ async def create_lecture(request: Request):
     
     data = await request.json()
     
-    # class_name and division: prefer from payload, fall back to teacher's profile
-    class_name = (
-        (data.get("class_name") or "").strip()
-        or current_user.get("class_name")
-        or None
-    )
-    division = (
-        (data.get("division") or "").strip()
-        or current_user.get("division")
-        or None
-    )
+    class_name = current_user.get("class_name")
+    division = current_user.get("division")
+    if data.get("class_name") and data["class_name"] != class_name:
+        raise HTTPException(status_code=403, detail="You are not authorized for this class")
+    if data.get("division") and data["division"] != division:
+        raise HTTPException(status_code=403, detail="You are not authorized for this division")
+
+    options = await get_teacher_classroom_options(current_user)
+    batch_id = data.get("batch_id") or None
+    valid_batches = {batch["id"]: batch["name"] for batch in options["batches"]}
+    if batch_id is not None and str(batch_id) not in valid_batches:
+        raise HTTPException(status_code=400, detail="Batch is not available for this class and division")
+    batch_name = valid_batches.get(str(batch_id), "All Students")
 
     lecture = {
         "lecture_id": generate_id("lec_"),
@@ -424,7 +816,9 @@ async def create_lecture(request: Request):
         "topic": data["topic"],
         "teacher_id": current_user["user_id"],
         "teacher_name": current_user["name"],
-        "batch": data.get("batch", "All"),
+        "batch": batch_name,
+        "batch_id": str(batch_id) if batch_id is not None else None,
+        "batch_scope": "class_division",
         "class_name": class_name,
         "division": division,
         "audio_path": None,
@@ -501,9 +895,11 @@ async def process_lecture(lecture_id: str, request: Request):
         summary = normalize_summary(summary)
     except Exception as error:
         logger.exception("Lecture processing failed for %s: %s", lecture_id, error)
-        raw_transcript = lecture.get("raw_transcript") or "Transcript could not be generated."
-        clean = lecture.get("clean_transcript") or raw_transcript
-        summary = build_topic_fallback_summary(lecture, str(error))
+        await db.lectures.update_one(
+            {"lecture_id": lecture_id},
+            {"$set": {"status": "failed", "analysis_error": str(error)}}
+        )
+        raise HTTPException(status_code=502, detail="Unable to generate lecture analysis. Please try again.") from error
     
     # Update lecture
     await db.lectures.update_one(
@@ -512,6 +908,11 @@ async def process_lecture(lecture_id: str, request: Request):
             "raw_transcript": raw_transcript,
             "clean_transcript": clean,
             "summary": summary,
+            "analysis_status": "generated",
+            "analysis_version": 1,
+            "analysis_generated_at": datetime.now(timezone.utc).isoformat(),
+            "transcript_hash": transcript_hash(clean),
+            "analysis_error": None,
             "status": "completed"
         }}
     )
@@ -547,13 +948,22 @@ async def regenerate_lecture_summary(lecture_id: str, request: Request):
         summary = normalize_summary(summary)
     except Exception as error:
         logger.exception("Summary regeneration failed for %s: %s", lecture_id, error)
-        summary = build_topic_fallback_summary(lecture, str(error))
+        await db.lectures.update_one(
+            {"lecture_id": lecture_id},
+            {"$set": {"status": "failed", "analysis_error": str(error)}}
+        )
+        raise HTTPException(status_code=502, detail="Unable to generate lecture analysis. Please try again.") from error
 
     await db.lectures.update_one(
         {"lecture_id": lecture_id},
         {"$set": {
             "clean_transcript": clean,
             "summary": summary,
+            "analysis_status": "generated",
+            "analysis_version": 1,
+            "analysis_generated_at": datetime.now(timezone.utc).isoformat(),
+            "transcript_hash": transcript_hash(clean),
+            "analysis_error": None,
             "status": "completed"
         }}
     )
@@ -580,31 +990,19 @@ async def get_lectures(request: Request, subject: Optional[str] = None, limit: i
             query = teacher_filter
 
     elif role == "student":
-        # Students see lectures assigned to their class/division, or lectures
-        # that have no class/division restriction (i.e. "All").
         class_name = current_user.get("class_name")
         division = current_user.get("division")
-
-        # Lectures with no class restriction are always visible.
-        or_conditions = [
-            {"class_name": {"$exists": False}},
-            {"class_name": None},
-            {"class_name": "All"},
-        ]
-        if class_name:
-            div_conditions = [
-                {"division": {"$exists": False}},
-                {"division": None},
-                {"division": "All"},
+        class_filter = {"class_name": class_name, "division": division}
+        student_batch_id = current_user.get("batch_id") or current_user.get("batch")
+        if student_batch_id:
+            class_filter["$or"] = [
+                {"batch_id": None},
+                {"batch_id": {"$exists": False}},
+                {"batch_id": str(student_batch_id)},
+                {"batch": str(student_batch_id)},
+                {"batch": "All"},
+                {"batch": "All Students"},
             ]
-            if division:
-                div_conditions.append({"division": division})
-
-            or_conditions.append(
-                {"class_name": class_name, "$or": div_conditions}
-            )
-
-        class_filter = {"$or": or_conditions}
         if query:
             query = {"$and": [query, class_filter]}
         else:
@@ -639,18 +1037,18 @@ async def get_lecture(lecture_id: str, request: Request):
         user_class = current_user.get("class_name")
         user_div = current_user.get("division")
 
-        if lec_class and lec_class not in (None, "All"):
-            if not user_class or lec_class != user_class:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Access denied: This lecture is assigned to a different class."
-                )
-            if lec_div and lec_div not in (None, "All"):
-                if not user_div or lec_div != user_div:
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Access denied: This lecture is assigned to a different division."
-                    )
+        if lec_class != user_class or lec_div != user_div:
+            raise HTTPException(status_code=403, detail="Access denied: This lecture is assigned to a different classroom.")
+        student_batch_id = current_user.get("batch_id") or current_user.get("batch")
+        lecture_batch_id = lecture.get("batch_id")
+        if lecture_batch_id and str(lecture_batch_id) != str(student_batch_id):
+            raise HTTPException(status_code=403, detail="Access denied: This lecture is assigned to a different batch.")
+
+    # Do not expose stale notes as current analysis. The frontend can then
+    # regenerate them from this lecture's transcript without losing the lecture.
+    if not analysis_is_current(lecture):
+        lecture["analysis_status"] = "stale" if lecture.get("summary") else "missing"
+        lecture["summary"] = None
 
     # Admins can access any lecture.
     return lecture
@@ -1206,6 +1604,7 @@ async def seed_demo_data(request: Request):
     ]
     
     for user in demo_users:
+        user["password_hash"] = hash_password("demo123")
         user["created_at"] = datetime.now(timezone.utc).isoformat()
         await db.users.update_one({"user_id": user["user_id"]}, {"$set": user}, upsert=True)
     
@@ -1222,10 +1621,10 @@ async def seed_demo_data(request: Request):
             "batch": "CS-2025",
             "class_name": "B.Tech IT",
             "division": "A",
-            "status": "completed",
-            "raw_transcript": "Today we cover the fundamentals of data structures...",
-            "clean_transcript": "Today we cover the fundamentals of data structures and algorithms, focusing on arrays and linked lists.",
-            "summary": get_mock_summary(),
+            "status": "pending",
+            "raw_transcript": None,
+            "clean_transcript": None,
+            "summary": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         },
         {
@@ -1238,17 +1637,10 @@ async def seed_demo_data(request: Request):
             "batch": "CS-2025",
             "class_name": "B.Tech IT",
             "division": "A",
-            "status": "completed",
-            "raw_transcript": "Object oriented programming is a paradigm...",
-            "clean_transcript": "Object oriented programming is a paradigm based on objects containing data and code.",
-            "summary": {
-                "topics_learned": ["Classes and Objects", "Inheritance", "Polymorphism", "Encapsulation"],
-                "topic_summaries": {"OOP Basics": "Core concepts of object-oriented design"},
-                "key_concepts": ["Abstraction", "Inheritance", "Polymorphism", "Encapsulation"],
-                "important_points": ["Use inheritance for code reuse", "Encapsulation protects data"],
-                "homework": ["Create a class hierarchy for a library system"],
-                "revision_checklist": ["Review SOLID principles"]
-            },
+            "status": "pending",
+            "raw_transcript": None,
+            "clean_transcript": None,
+            "summary": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         },
         # Teacher B (Raj Mehta) → B.Tech IT / Division B
@@ -1262,10 +1654,10 @@ async def seed_demo_data(request: Request):
             "batch": "CS-2025",
             "class_name": "B.Tech IT",
             "division": "B",
-            "status": "completed",
-            "raw_transcript": "Today we cover SQL and relational databases...",
-            "clean_transcript": "SQL is a standard language for relational database management. We cover SELECT, INSERT, UPDATE, DELETE.",
-            "summary": get_mock_summary(),
+            "status": "pending",
+            "raw_transcript": None,
+            "clean_transcript": None,
+            "summary": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         },
         {
@@ -1278,10 +1670,10 @@ async def seed_demo_data(request: Request):
             "batch": "CS-2025",
             "class_name": "B.Tech IT",
             "division": "B",
-            "status": "completed",
-            "raw_transcript": "The OSI model has 7 layers...",
-            "clean_transcript": "The OSI model defines 7 layers: Physical, Data Link, Network, Transport, Session, Presentation, Application.",
-            "summary": get_mock_summary(),
+            "status": "pending",
+            "raw_transcript": None,
+            "clean_transcript": None,
+            "summary": None,
             "created_at": datetime.now(timezone.utc).isoformat()
         },
     ]
@@ -1344,20 +1736,18 @@ app.include_router(api_router)
 
 cors_origins = [o.strip() for o in os.environ.get(
     "CORS_ORIGINS",
-    "http://127.0.0.1:4000,http://localhost:4000,http://127.0.0.1:3000,http://localhost:3000"
+    "http://127.0.0.1:4000,http://localhost:4000"
 ).split(",") if o.strip()]
 for local_origin in (
     "http://127.0.0.1:4000",
     "http://localhost:4000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
 ):
     if local_origin not in cors_origins:
         cors_origins.append(local_origin)
 
 cors_origin_regex = os.environ.get(
     "CORS_ORIGIN_REGEX",
-    r"https?://(?:localhost|127\.0\.0\.1)(:\d+)?$|https?://([a-zA-Z0-9-]+\.)*(devtunnels\.ms|ngrok-free\.app|ngrok\.io|loca\.lt|trycloudflare\.com)(:\d+)?$"
+    r"https?://(?:localhost|127\.0\.0\.1):4000$|https?://([a-zA-Z0-9-]+\.)*(devtunnels\.ms|ngrok-free\.app|ngrok\.io|loca\.lt|trycloudflare\.com)(:\d+)?$"
 )
 
 # Browsers block credentialed CORS when allow_origins is wildcard.
@@ -1365,8 +1755,6 @@ if "*" in cors_origins:
     cors_origins = [
         "http://127.0.0.1:4000",
         "http://localhost:4000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
     ]
 
 app.add_middleware(

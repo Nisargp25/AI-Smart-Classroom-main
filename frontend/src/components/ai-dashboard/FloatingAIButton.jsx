@@ -1,19 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Mic, Send, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import API from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function FloatingAIButton() {
+  const { user } = useAuth();
+  const currentRole = user?.role || 'student';
+  const roleLabel = currentRole === 'teacher' ? 'Teacher' : 'Student';
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [currentLectureId, setCurrentLectureId] = useState(() => {
+    const match = window.location.pathname.match(/^\/lectures\/([^/]+)/);
+    return match ? match[1] : null;
+  });
+  const [recentTopic, setRecentTopic] = useState('');
   const [chat, setChat] = useState([
-    { from: 'ai', text: 'Hi! I’m your AI assistant. How can I help you study today?' },
-  ]);
-
+    {
+      from: 'ai',
+      text: currentRole === 'teacher'
+        ? 'Hi! I’m your classroom AI assistant. How can I help your class today?'
+        : 'Hi! I’m your AI assistant. How can I help you study today?',
+    },
+  ]);  const historyLoadedRef = useRef(false);
   useEffect(() => {
     const handleOpenChat = (e) => {
       setOpen(true);
+      setCurrentLectureId(e.detail?.lectureId || null);
       if (e.detail?.message) {
         setMessage(e.detail.message);
       }
@@ -22,7 +36,57 @@ export default function FloatingAIButton() {
     return () => window.removeEventListener('open-campus-ai-chat', handleOpenChat);
   }, []);
 
+  // Load persistent chat history when panel opens
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!open || historyLoadedRef.current) return;
+      
+      try {
+        const response = await axios.get(`${API}/chat/history?limit=5`, { withCredentials: true });
+        const history = response.data.history || [];
+        
+        if (history.length > 0) {
+          // Convert history to chat format and prepend to current chat
+          const formattedHistory = history.map((h) => ({
+            from: h.role === 'assistant' ? 'ai' : 'user',
+            text: h.content,
+          }));
+          
+          // Extract recent topic from last AI response if available
+          for (let i = formattedHistory.length - 1; i >= 0; i--) {
+            if (formattedHistory[i].from === 'ai') {
+              extractTopicFromAiReply(formattedHistory[i].text);
+              break;
+            }
+          }
+          
+          // Only show history if it's not just the initial greeting
+          if (formattedHistory.length > 0) {
+            setChat((prevChat) => formattedHistory.concat(prevChat.slice(1))); // Keep initial greeting
+          }
+          historyLoadedRef.current = true;
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+    
+    if (open) {
+      loadChatHistory();
+    }
+  }, [open]);
+
   const getQuickPrompts = () => {
+    if (currentRole === 'teacher') {
+      return [
+        'Analyze my class',
+        'Which topics are difficult for my students?',
+        'Students needing help',
+        'Quiz analysis',
+        'Create a revision plan',
+      ];
+    }
+
     const path = window.location.pathname;
     if (path.includes('/lectures')) {
       return [
@@ -49,23 +113,92 @@ export default function FloatingAIButton() {
       ];
     }
     return [
+      'What are my weak topics?',
+      'How am I performing?',
       'Create a study plan for me',
-      'What are my weakest topics?',
-      'Summarize my last lecture',
-      'Explain inheritance simply',
+      'Explain my weakest topic',
     ];
   };
 
-  const sendChatMessage = async (text) => {
+  const resolveFollowUpPrompt = (text) => {
     const trimmedMessage = text.trim();
+    if (!recentTopic) return trimmedMessage;
+
+    const lower = trimmedMessage.toLowerCase();
+    const topic = recentTopic.trim();
+
+    if (/^(explain|summarize|describe|tell me about|what is|why is)\s+(it|this|that|the topic)$/i.test(trimmedMessage)) {
+      return `${trimmedMessage.replace(/\s+(it|this|that|the topic)$/i, '').trim() || 'Explain'} ${topic}`.trim();
+    }
+
+    if (/^(create a quiz on|give me a quiz on|quiz on|practice on)\s+(it|this|that|the topic)$/i.test(trimmedMessage)) {
+      return `Create a quiz on ${topic}`;
+    }
+
+    if (/^(it|this|that|the topic)$/i.test(lower)) {
+      return `Explain ${topic}`;
+    }
+
+    return trimmedMessage;
+  };
+
+  const extractTopicFromAiReply = (reply) => {
+    if (!reply) return;
+    const patterns = [
+      /weakest topic is\s+([^,.]+)/i,
+      /your weakest topic is\s+([^,.]+)/i,
+      /the weakest topic is\s+([^,.]+)/i,
+      /topic is\s+([^,.]+)/i,
+      /most difficult topic\s+([^,.]+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = reply.match(pattern);
+      if (match && match[1]) {
+        const captured = match[1].trim();
+        if (captured && !captured.toLowerCase().includes('not enough data')) {
+          setRecentTopic(captured);
+          return;
+        }
+      }
+    }
+  };
+
+  const sendChatMessage = async (text) => {
+    const resolvedMessage = resolveFollowUpPrompt(text);
+    const trimmedMessage = resolvedMessage.trim();
     if (!trimmedMessage) return;
     setChat((c) => [...c, { from: 'user', text: trimmedMessage }]);
     setMessage('');
     try {
-      const response = await axios.post(`${API}/chat`, { message: trimmedMessage }, { withCredentials: true });
-      setChat((c) => [...c, { from: 'ai', text: response.data.response }]);
+      const response = await axios.post(
+        `${API}/chat`,
+        { message: trimmedMessage, lecture_id: currentLectureId },
+        { withCredentials: true },
+      );
+      const aiReply = response.data.response || 'I don\'t have enough data to answer that yet.';
+      const intent = response.data.intent || '';
+      
+      extractTopicFromAiReply(aiReply);
+      setChat((c) => [...c, { from: 'ai', text: aiReply }]);
+      
+      // Save to persistent history
+      try {
+        await axios.post(`${API}/chat/history/save`, 
+          {
+            message: trimmedMessage,
+            response: aiReply,
+            intent: intent,
+          },
+          { withCredentials: true }
+        );
+      } catch (saveError) {
+        console.error('Failed to save chat history:', saveError);
+        // Don't fail the chat if saving history fails
+      }
     } catch (error) {
-      setChat((c) => [...c, { from: 'ai', text: "Sorry, I couldn't generate a response right now. Please try again." }]);
+      const detail = error.response?.data?.detail || "Sorry, I couldn't generate a response right now. Please try again.";
+      setChat((c) => [...c, { from: 'ai', text: detail }]);
     }
   };
 
@@ -105,8 +238,13 @@ export default function FloatingAIButton() {
               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <div>
-                <p className="font-semibold text-sm">CampusAI Assistant</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm">CampusAI Assistant</p>
+                  <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-white/15 text-white/90">
+                    {roleLabel}
+                  </span>
+                </div>
                 <p className="text-xs text-brand-accent-light flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
                   Online · always learning

@@ -16,6 +16,8 @@ class User(BaseModel):
     role: str = "student"  # student, teacher, admin
     class_name: Optional[str] = None  # e.g. "IT-3"
     division: Optional[str] = None    # e.g. "A"
+    batch: Optional[str] = None
+    batch_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
 class UserCreate(BaseModel):
@@ -44,6 +46,7 @@ class Lecture(BaseModel):
     teacher_id: str
     teacher_name: str
     batch: str = "All"
+    batch_id: Optional[str] = None
     class_name: Optional[str] = None  # e.g. "IT-3"
     division: Optional[str] = None    # e.g. "A"
     audio_path: Optional[str] = None
@@ -51,6 +54,11 @@ class Lecture(BaseModel):
     raw_transcript: Optional[str] = None
     clean_transcript: Optional[str] = None
     summary: Optional[Dict[str, Any]] = None
+    analysis_status: str = "missing"  # missing, stale, processing, generated, failed
+    analysis_version: int = 1
+    analysis_generated_at: Optional[datetime] = None
+    transcript_hash: Optional[str] = None
+    analysis_error: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "pending"  # pending, transcribing, processing, completed
 
@@ -59,6 +67,7 @@ class LectureCreate(BaseModel):
     subject: str
     topic: str
     batch: str = "All"
+    batch_id: Optional[str] = None
     class_name: Optional[str] = None
     division: Optional[str] = None
 
@@ -155,3 +164,14 @@ class Announcement(BaseModel):
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     target_role: str = "all"  # all, student, teacher
+
+# Chat History Model
+class ChatHistory(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    chat_id: str = Field(default_factory=lambda: generate_id("chat_"))
+    user_id: str
+    user_role: str  # student or teacher
+    user_message: str
+    ai_response: str
+    intent: str  # student_performance, teacher_class_analysis, etc.
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

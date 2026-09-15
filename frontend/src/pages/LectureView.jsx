@@ -50,7 +50,23 @@ export default function LectureView() {
   const fetchLecture = useCallback(async ({ silent = false } = {}) => {
     try {
       const response = await axios.get(`${API}/lectures/${lectureId}`, { withCredentials: true });
-      setLecture(response.data);
+      const lectureData = response.data;
+      if (lectureData.analysis_status === 'stale' && (lectureData.clean_transcript || lectureData.raw_transcript)) {
+        setLecture({ ...lectureData, status: 'processing' });
+        setRegenerating(true);
+        try {
+          const regenerated = await axios.post(`${API}/lectures/${lectureId}/regenerate-summary`, {}, { withCredentials: true });
+          setLecture(regenerated.data);
+        } catch (error) {
+          console.error('Error regenerating stale lecture analysis:', error);
+          setLecture(lectureData);
+          toast.error(error.response?.data?.detail || 'Unable to generate lecture analysis. Please try again.');
+        } finally {
+          setRegenerating(false);
+        }
+      } else {
+        setLecture(lectureData);
+      }
     } catch (error) {
       console.error('Error fetching lecture:', error);
       if (error.response?.status === 403) {
@@ -155,7 +171,9 @@ export default function LectureView() {
   };
 
   const handleAskAssistant = (prompt) => {
-    window.dispatchEvent(new CustomEvent('open-campus-ai-chat', { detail: { message: prompt } }));
+    window.dispatchEvent(new CustomEvent('open-campus-ai-chat', {
+      detail: { message: prompt, lectureId },
+    }));
   };
 
   if (loading) {
@@ -186,6 +204,8 @@ export default function LectureView() {
   const nextLecture = currentIndex !== -1 && currentIndex > 0 ? siblingLectures[currentIndex - 1] : null;
 
   const summary = lecture.summary || {};
+  const topics = summary.topics_learned || summary.topics || [];
+  const deepNotes = summary.deep_notes || [];
 
   return (
     <div className="min-h-screen ai-dashboard-bg relative overflow-x-hidden pb-12" data-testid="lecture-view">
@@ -231,7 +251,7 @@ export default function LectureView() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {lecture.status === 'completed' && (
+            {lecture.clean_transcript || lecture.raw_transcript ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -243,7 +263,7 @@ export default function LectureView() {
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerating ? 'animate-spin' : ''}`} />
                 {regenerating ? 'Regenerating...' : 'Regenerate Deep Notes'}
               </Button>
-            )}
+            ) : null}
             <Badge className={lecture.status === 'completed' ? 'bg-indigo-600 text-white rounded-lg text-xs py-1 px-3' : 'bg-gray-100 text-gray-600 rounded-lg text-xs py-1 px-3'}>
               {lecture.status === 'completed' ? '✨ AI Analyzed' : lecture.status}
             </Badge>
@@ -259,10 +279,14 @@ export default function LectureView() {
             {lecture.status !== 'completed' ? (
               <Card className="bento-tile p-8 text-center border-gray-100 shadow-soft">
                 <CardContent className="p-0 py-8">
-                  <Clock className="w-12 h-12 mx-auto mb-4 text-indigo-600 animate-spin" />
-                  <p className="text-lg font-bold text-gray-800">Lecture is being processed by AI</p>
+                  <Clock className={`w-12 h-12 mx-auto mb-4 text-indigo-600 ${lecture.status === 'failed' ? '' : 'animate-spin'}`} />
+                  <p className="text-lg font-bold text-gray-800">
+                    {lecture.status === 'failed' ? 'Unable to generate lecture analysis' : 'Lecture is being processed by AI'}
+                  </p>
                   <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
-                    Check back shortly. CampusAI is transcribing audio and generating summary cards.
+                    {lecture.status === 'failed'
+                      ? 'Please try again. No generated notes were saved.'
+                      : 'Check back shortly. CampusAI is transcribing audio and generating summary cards.'}
                   </p>
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                     <Button
@@ -312,7 +336,7 @@ export default function LectureView() {
                         </CardHeader>
                         <CardContent className="p-0">
                           <ul className="space-y-2.5">
-                            {(summary.topics_learned || []).map((topic, i) => (
+                            {topics.map((topic, i) => (
                               <li key={i} className="flex items-center gap-2 text-xs font-medium text-gray-600">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                                 <span>{topic}</span>
@@ -376,7 +400,7 @@ export default function LectureView() {
                       </CardHeader>
                       <CardContent className="p-0">
                         <div className="flex flex-wrap gap-2">
-                          {(summary.key_concepts || []).map((concept, i) => (
+                          {(summary.key_concepts || topics).map((concept, i) => (
                             <Badge key={i} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-semibold py-1.5 px-3.5 border border-indigo-100 rounded-xl">
                               {concept}
                             </Badge>
@@ -403,6 +427,11 @@ export default function LectureView() {
                               <h4 className="font-bold text-sm text-gray-800">{topic}</h4>
                               <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
                             </div>
+                          ))}
+                          {deepNotes.map((note, i) => (
+                            <p key={`deep-note-${i}`} className="rounded-2xl border border-gray-100 p-4 text-xs text-gray-500 leading-relaxed bg-white">
+                              {note}
+                            </p>
                           ))}
                         </div>
                       </CardContent>
@@ -449,6 +478,25 @@ export default function LectureView() {
                         </CardContent>
                       </Card>
                     </div>
+
+                    <Card className="bento-tile p-6 border-gray-100 shadow-soft" data-testid="practice-questions">
+                      <CardHeader className="p-0 mb-4">
+                        <CardTitle className="flex items-center gap-2 text-md font-bold text-gray-800">
+                          <HelpCircle className="w-5 h-5 text-indigo-600" />
+                          Practice Questions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <ul className="space-y-2.5 text-xs text-gray-600">
+                          {(summary.practice_questions || summary.exam_questions || []).map((question, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-indigo-500 font-bold">{i + 1}.</span>
+                              <span>{typeof question === 'string' ? question : question.question}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Homework Tab */}
@@ -614,7 +662,7 @@ export default function LectureView() {
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase text-gray-400">Audience Batch</p>
-                  <p className="font-semibold text-gray-700">{lecture.batch || 'CS-2025'}</p>
+                  <p className="font-semibold text-gray-700">{lecture.batch || 'All Students'}</p>
                 </div>
               </div>
             </Card>
