@@ -15,6 +15,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import aiofiles
 import json
+import asyncio
 
 from models import (
     User, UserCreate, Lecture, LectureCreate, Quiz, QuizQuestion,
@@ -80,8 +81,66 @@ UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 logger = logging.getLogger(__name__)
+
+async def trigger_n8n_lecture_workflow(lecture: dict):
+    """Trigger n8n after a lecture has been successfully processed."""
+
+    webhook_url = os.environ.get("N8N_WEBHOOK_URL")
+
+    if not webhook_url:
+        logger.info(
+            "N8N_WEBHOOK_URL is not configured. Skipping n8n workflow."
+        )
+        return
+
+    payload = {
+        "event": "lecture_completed",
+        "lecture": {
+            "lecture_id": lecture.get("lecture_id"),
+            "title": lecture.get("title"),
+            "subject": lecture.get("subject"),
+            "topic": lecture.get("topic"),
+            "teacher_id": lecture.get("teacher_id"),
+            "teacher_name": lecture.get("teacher_name"),
+            "batch": lecture.get("batch"),
+            "status": lecture.get("status"),
+        }
+    }
+
+    try:
+        import urllib.request
+
+        data = json.dumps(payload).encode("utf-8")
+
+        req = urllib.request.Request(
+            webhook_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        await asyncio.to_thread(
+            urllib.request.urlopen,
+            req,
+            timeout=10
+        )
+
+        logger.info(
+            "n8n lecture workflow triggered successfully for %s",
+            lecture.get("lecture_id")
+        )
+
+    except Exception as error:
+        logger.exception(
+            "Failed to trigger n8n for lecture %s: %s",
+            lecture.get("lecture_id"),
+            error
+        )
 
 
 def hash_password(password: str) -> str:
@@ -870,54 +929,83 @@ async def upload_lecture_audio(
 
 @api_router.post("/lectures/{lecture_id}/process")
 async def process_lecture(lecture_id: str, request: Request):
-    """Process lecture: transcribe and generate summary"""
+    """Process lecture: transcribe, generate summary, and trigger n8n."""
+
     current_user = await get_current_user(request, db)
-    
-    lecture = await db.lectures.find_one({"lecture_id": lecture_id}, {"_id": 0})
+
+    lecture = await db.lectures.find_one(
+        {"lecture_id": lecture_id},
+        {"_id": 0}
+    )
+
     if not lecture:
-        raise HTTPException(status_code=404, detail="Lecture not found")
-    
+        raise HTTPException(
+            status_code=404,
+            detail="Lecture not found"
+        )
+
     # Update status
     await db.lectures.update_one(
         {"lecture_id": lecture_id},
         {"$set": {"status": "processing"}}
     )
-    
+
     try:
         # Transcribe audio
-        raw_transcript = await transcribe_audio(lecture.get("audio_path", ""))
+        raw_transcript = await transcribe_audio(
+            lecture.get("audio_path", "")
+        )
 
         # Clean transcript
         clean = await clean_transcript(raw_transcript)
 
-        # Generate summary
+        # Generate summary using existing AI/Groq logic
         summary = await generate_lecture_summary(clean)
-        summary = normalize_summary(summary)
+
     except Exception as error:
-        logger.exception("Lecture processing failed for %s: %s", lecture_id, error)
+        logger.exception(
+            "Lecture processing failed for %s: %s",
+            lecture_id,
+            error
+        )
+
         await db.lectures.update_one(
             {"lecture_id": lecture_id},
-            {"$set": {"status": "failed", "analysis_error": str(error)}}
+            {
+                "$set": {
+                    "status": "failed",
+                    "analysis_error": str(error)
+                }
+            }
         )
-        raise HTTPException(status_code=502, detail="Unable to generate lecture analysis. Please try again.") from error
-    
-    # Update lecture
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to generate lecture analysis. Please try again."
+        ) from error
+
+    # Save processed lecture
     await db.lectures.update_one(
         {"lecture_id": lecture_id},
-        {"$set": {
-            "raw_transcript": raw_transcript,
-            "clean_transcript": clean,
-            "summary": summary,
-            "analysis_status": "generated",
-            "analysis_version": 1,
-            "analysis_generated_at": datetime.now(timezone.utc).isoformat(),
-            "transcript_hash": transcript_hash(clean),
-            "analysis_error": None,
-            "status": "completed"
-        }}
+        {
+            "$set": {
+                "raw_transcript": raw_transcript,
+                "clean_transcript": clean,
+                "summary": summary,
+                "status": "completed"
+            }
+        }
     )
-    
-    lecture = await db.lectures.find_one({"lecture_id": lecture_id}, {"_id": 0})
+
+    # Get the final lecture document
+    lecture = await db.lectures.find_one(
+        {"lecture_id": lecture_id},
+        {"_id": 0}
+    )
+
+    # Trigger n8n AFTER successful lecture processing
+    await trigger_n8n_lecture_workflow(lecture)
+
     return lecture
 
 
