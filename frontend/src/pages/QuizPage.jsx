@@ -54,27 +54,11 @@ export default function QuizPage() {
     fetchQuiz();
   }, [fetchQuiz]);
 
-  // Timer effect
-  useEffect(() => {
-    if (submitted || timeLeft <= 0 || !quiz) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, submitted, quiz]);
-
   const handleAnswer = (questionId, answerIndex) => {
     setAnswers(prev => ({ ...prev, [questionId]: answerIndex }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (submitted) return;
     const timeTaken = Math.floor((Date.now() - startTime) / 1000);
     
@@ -100,7 +84,23 @@ export default function QuizPage() {
       console.error('Error submitting quiz:', error);
       toast.error('Failed to submit quiz');
     }
-  };
+  }, [answers, quizId, startTime, submitted]);
+
+  // Timer effect
+  useEffect(() => {
+    if (submitted || timeLeft <= 0 || !quiz) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [handleSubmit, timeLeft, submitted, quiz]);
 
   if (loading) {
     return (
@@ -231,8 +231,8 @@ export default function QuizPage() {
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
                 <p className="font-bold text-indigo-300 uppercase tracking-wider text-[9px]">Recommended Practice</p>
                 <p className="text-[11px] text-indigo-200/90 leading-relaxed font-medium">
-                  {isPassing 
-                    ? `Explore ${quiz.topic} Coding Practice Problems` 
+                  {isPassing
+                    ? `Explore ${quiz.topic} Coding Practice Problems`
                     : `Revise ${quiz.topic} Lecture Notes & summaries`}
                 </p>
               </div>
@@ -291,8 +291,7 @@ export default function QuizPage() {
                 }
               }} 
               className="rounded-xl text-xs font-bold bg-indigo-600 text-white" 
-              data-testid="go-dashboard-btn"
-            >
+              data-testid="go-dashboard-btn">
               {weakTopics.length > 0 ? 'Practice Weak Topics' : 'Go to Dashboard'}
             </Button>
           </div>
@@ -399,7 +398,6 @@ export default function QuizPage() {
             </div>
           </CardContent>
         </Card>
-
       </main>
     </div>
   );
